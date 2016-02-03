@@ -1,0 +1,168 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Header Files\Graphics">
+      <UniqueIdentifier>{e6801968-4b2b-44f4-91fb-07327b3f069c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Graphics\Resources">
+      <UniqueIdentifier>{3068585e-d737-422b-894f-10b7bf6d34b2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Graphics\Scene">
+      <UniqueIdentifier>{1345b33c-0234-44ac-8d1b-7d33dddcb2bd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Graphics\Renderable">
+      <UniqueIdentifier>{b21ec3fd-f673-4e58-b500-45a46d816576}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Graphics">
+      <UniqueIdentifier>{f642bd7f-7580-45cd-83e2-b1fd53e6a892}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Graphics\Resources">
+      <UniqueIdentifier>{5bbf254d-acb1-460c-a2ed-0dcbfa0c09ff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Graphics\Scene">
+      <UniqueIdentifier>{118d9d3b-d8dd-4ee5-9716-200a8a21e2e8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Graphics\Renderable">
+      <UniqueIdentifier>{f4cfbe5c-d03d-4d69-abdc-29bf99a404fa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Math">
+      <UniqueIdentifier>{705b12c8-0223-4714-9775-60a57a3ed580}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Math">
+      <UniqueIdentifier>{f47dd8c6-fe98-4566-a4aa-732a109d87f9}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\Vulpes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Logger.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Engine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\WindowCreationParameters.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\InputHandler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Window.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Export.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Renderer.h">
+      <Filter>Header Files\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Transformation.h">
+      <Filter>Header Files\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="include\MaterialResource.h">
+      <Filter>Header Files\Graphics\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="include\TextureResource.h">
+      <Filter>Header Files\Graphics\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="include\MeshResource.h">
+      <Filter>Header Files\Graphics\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Scene.h">
+      <Filter>Header Files\Graphics\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneObject.h">
+      <Filter>Header Files\Graphics\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="include\RenderableFactory.h">
+      <Filter>Header Files\Graphics\Renderable</Filter>
+    </ClInclude>
+    <ClInclude Include="include\RenderableObject.h">
+      <Filter>Header Files\Graphics\Renderable</Filter>
+    </ClInclude>
+    <ClInclude Include="include\RenderableObjectParameters.h">
+      <Filter>Header Files\Graphics\Renderable</Filter>
+    </ClInclude>
+    <ClInclude Include="include\ResourceCache.h">
+      <Filter>Header Files\Graphics\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="include\ResourceLoader.h">
+      <Filter>Header Files\Graphics\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Camera.h">
+      <Filter>Header Files\Graphics\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="include\FPSCamera.h">
+      <Filter>Header Files\Graphics\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Material.h">
+      <Filter>Header Files\Graphics\Renderable</Filter>
+    </ClInclude>
+    <ClInclude Include="include\MaterialUniformValues.h">
+      <Filter>Header Files\Graphics\Renderable</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Resource.h">
+      <Filter>Header Files\Graphics\Resources</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Logger.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Window.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="InputHandler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer.cpp">
+      <Filter>Source Files\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene.cpp">
+      <Filter>Source Files\Graphics\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneObject.cpp">
+      <Filter>Source Files\Graphics\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Camera.cpp">
+      <Filter>Source Files\Graphics\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="FPSCamera.cpp">
+      <Filter>Source Files\Graphics\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Material.cpp">
+      <Filter>Source Files\Graphics\Renderable</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderableFactory.cpp">
+      <Filter>Source Files\Graphics\Renderable</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderableObject.cpp">
+      <Filter>Source Files\Graphics\Renderable</Filter>
+    </ClCompile>
+    <ClCompile Include="ResourceCache.cpp">
+      <Filter>Source Files\Graphics\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="ResourceLoader.cpp">
+      <Filter>Source Files\Graphics\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="Transformation.cpp">
+      <Filter>Source Files\Math</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
