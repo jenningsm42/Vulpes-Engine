@@ -3,14 +3,13 @@
 #include <map>
 #include <string>
 #include "Export.h"
-#include "MeshResource.h"
-#include "TextureResource.h"
-#include "MaterialResource.h"
+#include "Handle.h"
+#include "Mesh.h"
+#include "Texture.h"
+#include "Material.h"
 
 namespace vul
 {
-	struct Resource;
-
 	class VEAPI ResourceCache
 	{
 	public:
@@ -18,12 +17,15 @@ namespace vul
 		~ResourceCache();
 
 		bool hasResource(const std::string& path);
-		Resource* getResource(const std::string& path);
+		Handle<Mesh> getMesh(const std::string& path);
+		Handle<Texture> getTexture(const std::string& path);
 
 	private:
-		std::map<std::string, Resource*> m_resources;
+		std::map<std::string, Handle<Mesh>> m_meshes;
+		std::map<std::string, Handle<Texture>> m_textures;
 
-		void addResource(const std::string& path, Resource* resource);
+		void addMesh(const std::string& path, Handle<Mesh> resource);
+		void addTexture(const std::string& path, Handle<Texture> resource);
 
 		friend class ResourceLoader;
 	};

@@ -18,9 +18,8 @@ namespace vul
 		}
 
 		glfwWindowHint(GLFW_RESIZABLE, param.resizable);
-		glfwWindowHint(GLFW_SAMPLES, param.samples);
 
-		m_window = glfwCreateWindow(m_width, m_height, param.title.c_str(), param.fullscreen ? glfwGetPrimaryMonitor() : NULL, NULL);
+		m_window = glfwCreateWindow(m_width, m_height, param.title.c_str(), param.fullscreen ? glfwGetPrimaryMonitor() : nullptr, nullptr);
 		if(!m_window)
 		{
 			glfwTerminate();
@@ -36,7 +35,7 @@ namespace vul
 		GLFWmonitor** monitors = glfwGetMonitors(&monitorCount);
 		if(!monitors) return;
 
-		GLFWmonitor *owner = NULL;
+		GLFWmonitor *owner = nullptr;
 		int windowX, windowY;
 		glfwGetWindowPos(m_window, &windowX, &windowY);
 		int ownerX, ownerY, ownerWidth, ownerHeight;

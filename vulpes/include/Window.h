@@ -4,6 +4,7 @@
 #include "Export.h"
 #include <cstdint>
 #include "WindowCreationParameters.h"
+#include "Handle.h"
 struct GLFWwindow;
 
 namespace vul
@@ -35,6 +36,7 @@ namespace vul
 		static void errorCallback(int error, const char* desc);
 
 		friend class Engine;
+		friend class Handle<Window>;
 	};
 }
 

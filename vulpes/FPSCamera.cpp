@@ -2,20 +2,17 @@
 #include "include/FPSCamera.h"
 #include "include/Engine.h"
 #include "include/Window.h"
-#include "include/InputHandler.h"
 #include <iostream>
 
 namespace vul
 {
-	FPSCamera::FPSCamera(Engine* engine, bool fly) : Camera(engine),
+	FPSCamera::FPSCamera(Engine& engine, bool fly) : Camera(engine),
 		m_speed(5.f), m_hAngle(3.14159f / 2.f), m_vAngle(-3.14159f / 2.f),
-		m_sensitivity(.2f), m_fly(fly)
+		m_sensitivity(.003f), m_fly(fly), m_ih(engine.getInputHandler())
 	{
-		m_ih = engine->getInputHandler();
-
-		engine->getWindow()->hideCursor();
-		m_halfWidth = engine->getWindow()->getWidth() / 2;
-		m_halfHeight = engine->getWindow()->getHeight() / 2;
+		engine.getWindow()->hideCursor();
+		m_halfWidth = engine.getWindow()->getWidth() / 2;
+		m_halfHeight = engine.getWindow()->getHeight() / 2;
 
 		m_ih->setCursorPos(m_halfWidth, m_halfHeight);
 	}
@@ -42,8 +39,8 @@ namespace vul
 
 		m_ih->setCursorPos(m_halfWidth, m_halfHeight);
 
-		m_hAngle += (float)dx * dt * m_sensitivity;
-		m_vAngle -= (float)dy * dt * m_sensitivity;
+		m_hAngle += (float)dx * m_sensitivity;
+		m_vAngle -= (float)dy * m_sensitivity;
 
 		const float pi = 3.14159f;
 		if(m_vAngle > 0) m_vAngle = -.001f; // Camera flips at m_vAngle = 0

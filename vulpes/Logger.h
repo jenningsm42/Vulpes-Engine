@@ -7,4 +7,4 @@ public:
 	static void log(const char* msg, ...);
 };
 
-#endif // _LOGGER_H
+#endif // _VUL_LOGGER_H

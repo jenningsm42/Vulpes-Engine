@@ -1,11 +1,10 @@
-#ifndef _VUL_MESHRESOURCE_H
-#define _VUL_MESHRESOURCE_H
-#include "Resource.h"
+#ifndef _VUL_MESH_H
+#define _VUL_MESH_H
 #include <cstdint>
 
 namespace vul
 {
-	struct MeshResource : public Resource
+	struct Mesh
 	{
 		uint32_t vao = 0; // Handle to vertex array object
 		uint32_t ib = 0; // Handle to index buffer
@@ -13,4 +12,4 @@ namespace vul
 	};
 }
 
-#endif // _VUL_MESHRESOURCE_H
+#endif // _VUL_MESH_H

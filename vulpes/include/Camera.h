@@ -11,7 +11,7 @@ namespace vul
 	class VEAPI Camera
 	{
 	public:
-		Camera(Engine* engine, const glm::vec3& position = glm::vec3(0, 0, 1),
+		Camera(Engine& engine, const glm::vec3& position = glm::vec3(0, 0, 1),
 			const glm::vec3& up = glm::vec3(0, 1, 0),
 			const glm::vec3& target = glm::vec3(0, 0, 0),
 			float near = .1f, float far = 500.f, float fieldOfView = 1.047196667f);
@@ -29,6 +29,18 @@ namespace vul
 
 		inline glm::mat4 getViewMatrix();
 		inline glm::mat4 getProjMatrix();
+		inline glm::mat4 getTranslationMatrix();
+
+		inline float getNear();
+		inline float getFar();
+
+		inline glm::vec3 getPosition();
+		inline glm::vec3 getTarget();
+		inline float getFieldOfView();
+		inline float getAspectRatio();
+
+		inline uint32_t getWidth();
+		inline uint32_t getHeight();
 
 	protected:
 		uint32_t m_width, m_height;
@@ -40,6 +52,7 @@ namespace vul
 
 		glm::mat4 m_projMatrix;
 		glm::mat4 m_viewMatrix;
+		glm::mat4 m_translateMatrix;
 	};
 }
 

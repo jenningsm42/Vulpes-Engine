@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -25,7 +25,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v120</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
@@ -57,7 +57,7 @@
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>glew32sd.lib;glfw3d.lib;opengl32.lib;libpng32d.lib;zlib32d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>glew32sd.lib;glfw3.lib;opengl32.lib;libpng32d.lib;zlib32d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -77,43 +77,47 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="include\Camera.h" />
+    <ClInclude Include="include\Material.h" />
+    <ClInclude Include="include\PointLight.h" />
+    <ClInclude Include="include\RenderableObject.h" />
+    <ClInclude Include="include\DeferredRenderer.h" />
+    <ClInclude Include="include\Renderer.h" />
+    <ClInclude Include="include\Scene.h" />
     <ClInclude Include="include\Engine.h" />
     <ClInclude Include="include\Export.h" />
     <ClInclude Include="include\FPSCamera.h" />
+    <ClInclude Include="include\GBuffer.h" />
     <ClInclude Include="include\InputHandler.h" />
-    <ClInclude Include="include\Material.h" />
-    <ClInclude Include="include\MaterialResource.h" />
-    <ClInclude Include="include\RenderableFactory.h" />
-    <ClInclude Include="include\RenderableObject.h" />
-    <ClInclude Include="include\MeshResource.h" />
-    <ClInclude Include="include\RenderableObjectParameters.h" />
-    <ClInclude Include="include\Renderer.h" />
-    <ClInclude Include="include\Resource.h" />
+    <ClInclude Include="include\Mesh.h" />
+    <ClInclude Include="include\ForwardRenderer.h" />
+    <ClInclude Include="include\Handle.h" />
     <ClInclude Include="include\ResourceCache.h" />
     <ClInclude Include="include\ResourceLoader.h" />
-    <ClInclude Include="include\Scene.h" />
     <ClInclude Include="include\SceneObject.h" />
-    <ClInclude Include="include\TextureResource.h" />
+    <ClInclude Include="include\Texture.h" />
     <ClInclude Include="include\Transformation.h" />
-    <ClInclude Include="include\MaterialUniformValues.h" />
     <ClInclude Include="include\Vulpes.h" />
     <ClInclude Include="include\Window.h" />
     <ClInclude Include="include\WindowCreationParameters.h" />
+    <ClInclude Include="InternalResourceLoader.h" />
     <ClInclude Include="Logger.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="PointLight.cpp" />
+    <ClCompile Include="RenderableObject.cpp" />
+    <ClCompile Include="DeferredRenderer.cpp" />
+    <ClCompile Include="Renderer.cpp" />
+    <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Engine.cpp" />
     <ClCompile Include="FPSCamera.cpp" />
+    <ClCompile Include="GBuffer.cpp" />
     <ClCompile Include="InputHandler.cpp" />
+    <ClCompile Include="InternalResourceLoader.cpp" />
     <ClCompile Include="Logger.cpp" />
-    <ClCompile Include="Material.cpp" />
-    <ClCompile Include="RenderableFactory.cpp" />
-    <ClCompile Include="RenderableObject.cpp" />
-    <ClCompile Include="Renderer.cpp" />
+    <ClCompile Include="ForwardRenderer.cpp" />
     <ClCompile Include="ResourceCache.cpp" />
     <ClCompile Include="ResourceLoader.cpp" />
-    <ClCompile Include="Scene.cpp" />
     <ClCompile Include="SceneObject.cpp" />
     <ClCompile Include="Transformation.cpp" />
     <ClCompile Include="Window.cpp" />

@@ -6,13 +6,13 @@
 
 namespace vul
 {
-	Camera::Camera(Engine* engine, const glm::vec3& position, const glm::vec3& up,
+	Camera::Camera(Engine& engine, const glm::vec3& position, const glm::vec3& up,
 		const glm::vec3& target, float near, float far, float fieldOfView)
 		: m_position(position), m_up(up), m_target(target), m_near(near),
 		m_far(far), m_fieldOfView(fieldOfView)
 	{
-		m_width = engine->getWindow()->getWidth();
-		m_height = engine->getWindow()->getHeight();
+		m_width = engine.getWindow()->getWidth();
+		m_height = engine.getWindow()->getHeight();
 		update();
 	}
 
@@ -55,6 +55,7 @@ namespace vul
 		m_projMatrix = glm::perspective(m_fieldOfView,
 			(float)m_width / (float)m_height, m_near, m_far);
 		m_viewMatrix = glm::lookAt(m_position, m_target, m_up);
+		m_translateMatrix = glm::translate(glm::mat4(), m_position);
 	}
 
 	inline glm::mat4 Camera::getViewMatrix()
@@ -65,5 +66,50 @@ namespace vul
 	inline glm::mat4 Camera::getProjMatrix()
 	{
 		return m_projMatrix;
+	}
+
+	inline glm::mat4 Camera::getTranslationMatrix()
+	{
+		return m_translateMatrix;
+	}
+
+	inline float Camera::getNear()
+	{
+		return m_near;
+	}
+
+	inline float Camera::getFar()
+	{
+		return m_far;
+	}
+
+	inline glm::vec3 Camera::getPosition()
+	{
+		return m_position;
+	}
+
+	inline glm::vec3 Camera::getTarget()
+	{
+		return m_target;
+	}
+
+	inline float Camera::getFieldOfView()
+	{
+		return m_fieldOfView;
+	}
+
+	inline float Camera::getAspectRatio()
+	{
+		return (float)m_width / (float)m_height;
+	}
+
+	inline uint32_t Camera::getWidth()
+	{
+		return m_width;
+	}
+
+	inline uint32_t Camera::getHeight()
+	{
+		return m_height;
 	}
 }

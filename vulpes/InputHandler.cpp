@@ -45,13 +45,13 @@ namespace vul
 	uint32_t InputHandler::getCursorX()
 	{
 		glfwGetCursorPos(m_window, &m_curX, &m_curY);
-		return m_curX;
+		return static_cast<uint32_t>(m_curX);
 	}
 
 	uint32_t InputHandler::getCursorY()
 	{
 		glfwGetCursorPos(m_window, &m_curX, &m_curY);
-		return m_curY;
+		return static_cast<uint32_t>(m_curY);
 	}
 
 	void InputHandler::setCursorPos(uint32_t x, uint32_t y)

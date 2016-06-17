@@ -1,34 +1,31 @@
 #ifndef _VUL_RENDERER_H
 #define _VUL_RENDERER_H
-#include "Export.h"
 #include <cstdint>
-#include "Material.h"
+#include "Export.h"
+#include "Scene.h"
+#include "Camera.h"
 
 namespace vul
 {
-	class Scene;
-	class Camera;
-
 	class VEAPI Renderer
 	{
 	public:
 		Renderer();
-		~Renderer();
+		virtual ~Renderer() {}
 
-		void setScene(Scene*);
-		void setActiveCamera(Camera*);
+		virtual void setScene(Scene&);
+		virtual void setActiveCamera(Camera&);
 
-		void render();
+		virtual void render() = 0;
 
-		void setWireframeMode(bool);
+		virtual void setWireframeMode(bool) = 0;
 		uint32_t getPolygonCount();
 
-	private:
+	protected:
 		Scene* m_scene;
 		Camera* m_camera;
 		uint32_t m_polycount;
-
-		void handleUniforms(Material*);
+		bool m_error; // So that error messages aren't logged for every attempted frame
 	};
 }
 

@@ -9,31 +9,25 @@
 namespace vul
 {
 	Engine::Engine(const WindowCreationParameters& param) : m_deltaTime(1.f), m_deltaTime64(1.0),
-		m_fps(0)
+		m_fps(0), m_window(param), m_inputHandler(m_window.m_window)
 	{
-		m_window = new Window(param);
-		m_inputHandler = new InputHandler(m_window->m_window);
-
-		for(int i = 0; i < 4; i++) m_color[i] = 1.f;
-
 		if(initializeOpenGL())
 			Logger::log("Vulpes Engine initialized at %dx%d, OpenGL version %s",
-			m_window->getWidth(), m_window->getHeight(), glGetString(GL_VERSION));
+			m_window.getWidth(), m_window.getHeight(), glGetString(GL_VERSION));
 	}
 
 	Engine::~Engine()
 	{
-		delete m_window;
 	}
 
 	inline bool Engine::isRunning()
 	{
-		return m_window->isRunning();
+		return m_window.isRunning();
 	}
 
 	inline void Engine::close()
 	{
-		m_window->close();
+		m_window.close();
 	}
 
 	inline float Engine::getDeltaTime()
@@ -51,22 +45,14 @@ namespace vul
 		return m_fps;
 	}
 
-	Window* Engine::getWindow()
+	Handle<Window> Engine::getWindow()
 	{
-		return m_window;
+		return Handle<Window>(m_window);
 	}
 
-	InputHandler* Engine::getInputHandler()
+	Handle<InputHandler> Engine::getInputHandler()
 	{
-		return m_inputHandler;
-	}
-
-	inline void Engine::setClearColor(float r, float g, float b, float a)
-	{
-		m_color[0] = r;
-		m_color[1] = g;
-		m_color[2] = b;
-		m_color[3] = a;
+		return Handle<InputHandler>(m_inputHandler);
 	}
 
 	inline void Engine::swapFrameBuffers()
@@ -88,10 +74,7 @@ namespace vul
 			sprevtime = curtime;
 		}
 
-		m_window->swapFrameBuffers();
-
-		glClearColor(m_color[0], m_color[1], m_color[2], m_color[3]);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+		m_window.swapFrameBuffers();
 
 #if _DEBUG
 		GLenum err;
@@ -105,13 +88,13 @@ namespace vul
 		uint32_t res = glewInit();
 		if(res)
 		{
-			delete m_window;
 			Logger::log("vul::Engine::initializeOpenGL: Failed to initialize glew - %s", glewGetErrorString(res));
 			return false;
 		}
 
 		glEnable(GL_CULL_FACE);
 		glEnable(GL_DEPTH_TEST);
+		glClearDepth(1.f);
 		glDepthFunc(GL_LESS);
 		
 		return true;

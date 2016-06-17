@@ -22,9 +22,6 @@
     <Filter Include="Header Files\Graphics\Scene">
       <UniqueIdentifier>{1345b33c-0234-44ac-8d1b-7d33dddcb2bd}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\Graphics\Renderable">
-      <UniqueIdentifier>{b21ec3fd-f673-4e58-b500-45a46d816576}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\Graphics">
       <UniqueIdentifier>{f642bd7f-7580-45cd-83e2-b1fd53e6a892}</UniqueIdentifier>
     </Filter>
@@ -34,14 +31,17 @@
     <Filter Include="Source Files\Graphics\Scene">
       <UniqueIdentifier>{118d9d3b-d8dd-4ee5-9716-200a8a21e2e8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\Graphics\Renderable">
-      <UniqueIdentifier>{f4cfbe5c-d03d-4d69-abdc-29bf99a404fa}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files\Math">
       <UniqueIdentifier>{705b12c8-0223-4714-9775-60a57a3ed580}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source Files\Math">
       <UniqueIdentifier>{f47dd8c6-fe98-4566-a4aa-732a109d87f9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Graphics\Renderers">
+      <UniqueIdentifier>{89840253-7b85-436b-82ed-0488ece2a3a6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Graphics\Renderers">
+      <UniqueIdentifier>{fa352b35-1dcc-4f14-8606-e31325098271}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -66,35 +66,11 @@
     <ClInclude Include="include\Export.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\Renderer.h">
-      <Filter>Header Files\Graphics</Filter>
-    </ClInclude>
     <ClInclude Include="include\Transformation.h">
       <Filter>Header Files\Math</Filter>
     </ClInclude>
-    <ClInclude Include="include\MaterialResource.h">
-      <Filter>Header Files\Graphics\Resources</Filter>
-    </ClInclude>
-    <ClInclude Include="include\TextureResource.h">
-      <Filter>Header Files\Graphics\Resources</Filter>
-    </ClInclude>
-    <ClInclude Include="include\MeshResource.h">
-      <Filter>Header Files\Graphics\Resources</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Scene.h">
-      <Filter>Header Files\Graphics\Scene</Filter>
-    </ClInclude>
     <ClInclude Include="include\SceneObject.h">
       <Filter>Header Files\Graphics\Scene</Filter>
-    </ClInclude>
-    <ClInclude Include="include\RenderableFactory.h">
-      <Filter>Header Files\Graphics\Renderable</Filter>
-    </ClInclude>
-    <ClInclude Include="include\RenderableObject.h">
-      <Filter>Header Files\Graphics\Renderable</Filter>
-    </ClInclude>
-    <ClInclude Include="include\RenderableObjectParameters.h">
-      <Filter>Header Files\Graphics\Renderable</Filter>
     </ClInclude>
     <ClInclude Include="include\ResourceCache.h">
       <Filter>Header Files\Graphics\Resources</Filter>
@@ -108,14 +84,41 @@
     <ClInclude Include="include\FPSCamera.h">
       <Filter>Header Files\Graphics\Scene</Filter>
     </ClInclude>
-    <ClInclude Include="include\Material.h">
-      <Filter>Header Files\Graphics\Renderable</Filter>
+    <ClInclude Include="include\GBuffer.h">
+      <Filter>Header Files\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="include\MaterialUniformValues.h">
-      <Filter>Header Files\Graphics\Renderable</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Resource.h">
+    <ClInclude Include="InternalResourceLoader.h">
       <Filter>Header Files\Graphics\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Mesh.h">
+      <Filter>Header Files\Graphics\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Texture.h">
+      <Filter>Header Files\Graphics\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Material.h">
+      <Filter>Header Files\Graphics\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Scene.h">
+      <Filter>Header Files\Graphics\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="include\RenderableObject.h">
+      <Filter>Header Files\Graphics\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="include\DeferredRenderer.h">
+      <Filter>Header Files\Graphics\Renderers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\ForwardRenderer.h">
+      <Filter>Header Files\Graphics\Renderers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Handle.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Renderer.h">
+      <Filter>Header Files\Graphics\Renderers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\PointLight.h">
+      <Filter>Header Files\Graphics\Scene</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -131,12 +134,6 @@
     <ClCompile Include="Engine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Renderer.cpp">
-      <Filter>Source Files\Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="Scene.cpp">
-      <Filter>Source Files\Graphics\Scene</Filter>
-    </ClCompile>
     <ClCompile Include="SceneObject.cpp">
       <Filter>Source Files\Graphics\Scene</Filter>
     </ClCompile>
@@ -146,15 +143,6 @@
     <ClCompile Include="FPSCamera.cpp">
       <Filter>Source Files\Graphics\Scene</Filter>
     </ClCompile>
-    <ClCompile Include="Material.cpp">
-      <Filter>Source Files\Graphics\Renderable</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderableFactory.cpp">
-      <Filter>Source Files\Graphics\Renderable</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderableObject.cpp">
-      <Filter>Source Files\Graphics\Renderable</Filter>
-    </ClCompile>
     <ClCompile Include="ResourceCache.cpp">
       <Filter>Source Files\Graphics\Resources</Filter>
     </ClCompile>
@@ -163,6 +151,30 @@
     </ClCompile>
     <ClCompile Include="Transformation.cpp">
       <Filter>Source Files\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="GBuffer.cpp">
+      <Filter>Source Files\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="InternalResourceLoader.cpp">
+      <Filter>Source Files\Graphics\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene.cpp">
+      <Filter>Source Files\Graphics\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderableObject.cpp">
+      <Filter>Source Files\Graphics\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="DeferredRenderer.cpp">
+      <Filter>Source Files\Graphics\Renderers</Filter>
+    </ClCompile>
+    <ClCompile Include="ForwardRenderer.cpp">
+      <Filter>Source Files\Graphics\Renderers</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer.cpp">
+      <Filter>Source Files\Graphics\Renderers</Filter>
+    </ClCompile>
+    <ClCompile Include="PointLight.cpp">
+      <Filter>Source Files\Graphics\Scene</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

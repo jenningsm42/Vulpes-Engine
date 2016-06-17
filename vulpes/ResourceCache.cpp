@@ -13,16 +13,28 @@ namespace vul
 
 	bool ResourceCache::hasResource(const std::string& path)
 	{
-		return m_resources.find(path) != m_resources.end();
+		bool hasMesh = (m_meshes.find(path) != m_meshes.end());
+		bool hasTexture = (m_textures.find(path) != m_textures.end());
+		return hasMesh || hasTexture;
 	}
 
-	Resource* ResourceCache::getResource(const std::string& name)
+	Handle<Mesh> ResourceCache::getMesh(const std::string& path)
 	{
-		return m_resources[name];
+		return m_meshes[path];
 	}
 
-	void ResourceCache::addResource(const std::string& name, Resource* resource)
+	Handle<Texture> ResourceCache::getTexture(const std::string& path)
 	{
-		m_resources[name] = resource;
+		return m_textures[path];
+	}
+
+	void ResourceCache::addMesh(const std::string& path, Handle<Mesh> mesh)
+	{
+		m_meshes[path] = mesh;
+	}
+
+	void ResourceCache::addTexture(const std::string& path, Handle<Texture> texture)
+	{
+		m_textures[path] = texture;
 	}
 }

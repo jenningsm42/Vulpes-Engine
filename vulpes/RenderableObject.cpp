@@ -3,35 +3,71 @@
 
 namespace vul
 {
-	RenderableObject::RenderableObject(const RenderableObjectParameters& param)
-		: SceneObject(param.id)
+	RenderableObject::RenderableObject(uint32_t id)
+		: SceneObject(id, SceneObjectType::Renderable),
+		m_reflectionCoefficient(0.15f), // From polycarbonate refractive index
+		m_roughness(0.5f)
 	{
-		m_meshResource = param.meshResource;
-		m_textureResource = param.textureResource;
-		m_material = param.material;
 	}
 
 	RenderableObject::RenderableObject(const RenderableObject& other) : SceneObject(other)
 	{
-		m_meshResource = other.m_meshResource;
-		m_textureResource = other.m_textureResource;
-		m_material = other.m_material;
-		for(int32_t i = 0; i < 8; i++)
-			m_materialUniforms[i] = other.m_materialUniforms[i];
+		m_mesh = other.m_mesh;
+		m_colorMap = other.m_colorMap;
+		m_specularMap = other.m_specularMap;
+		m_normalMap = other.m_normalMap;
+		m_reflectionCoefficient = other.m_reflectionCoefficient;
+		m_roughness = other.m_roughness;
 	}
 
-	const MeshResource& RenderableObject::getMeshResource() const
+	void RenderableObject::attachMesh(const Handle<Mesh>& mesh)
 	{
-		return m_meshResource;
+		m_mesh = mesh.makeCopy();
 	}
 
-	const TextureResource& RenderableObject::getTextureResource() const
+	void RenderableObject::attachColorMap(const Handle<Texture>& tex)
 	{
-		return m_textureResource;
+		m_colorMap = tex.makeCopy();
 	}
 
-	Material* RenderableObject::getMaterial() 
+	void RenderableObject::attachSpecularMap(const Handle<Texture>& tex)
 	{
-		return m_material;
+		m_specularMap = tex.makeCopy();
+	}
+
+	void RenderableObject::attachNormalMap(const Handle<Texture>& tex)
+	{
+		m_normalMap = tex.makeCopy();
+	}
+
+	void RenderableObject::setRefractiveIndex(float n)
+	{
+		float tmp = (n - 1) / (n + 1);
+		m_reflectionCoefficient = tmp * tmp;
+	}
+
+	void RenderableObject::setRoughness(float roughness)
+	{
+		m_roughness = roughness;
+	}
+
+	Handle<Mesh> RenderableObject::getMesh()
+	{
+		return Handle<Mesh>(m_mesh);
+	}
+
+	Handle<Texture> RenderableObject::getColorMap()
+	{
+		return Handle<Texture>(m_colorMap);
+	}
+
+	float RenderableObject::getReflectionCoefficient()
+	{
+		return m_reflectionCoefficient;
+	}
+
+	float RenderableObject::getRoughness()
+	{
+		return m_roughness;
 	}
 }

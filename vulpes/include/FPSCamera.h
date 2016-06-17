@@ -1,17 +1,15 @@
 #ifndef _VUL_FPSCAMERA_H
 #define _VUL_FPSCAMERA_H
-#include <memory>
 #include "Export.h"
 #include "Camera.h"
+#include "InputHandler.h"
 
 namespace vul
 {
-	class InputHandler;
-
 	class VEAPI FPSCamera : public Camera
 	{
 	public:
-		FPSCamera(Engine*, bool fly);
+		FPSCamera(Engine&, bool fly = false);
 		~FPSCamera();
 
 		void setSpeed(float speed);
@@ -20,7 +18,7 @@ namespace vul
 		void update(float dt);
 
 	private:
-		InputHandler* m_ih;
+		Handle<InputHandler> m_ih;
 		bool m_fly;
 		float m_speed;
 		float m_sensitivity;

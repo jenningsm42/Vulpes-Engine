@@ -1,6 +1,5 @@
 #define VULPESENGINE_EXPORT
 #include "include/ResourceLoader.h"
-#include "include/ResourceCache.h"
 #include "Logger.h"
 #include <gl/glew.h>
 #include <fstream>
@@ -11,16 +10,16 @@
 
 namespace vul
 {
-	ResourceLoader::ResourceLoader() : m_resourceCache(new ResourceCache())
+	ResourceLoader::ResourceLoader()
 	{
+		createPlane();
 	}
 
 	ResourceLoader::~ResourceLoader()
 	{
-		delete m_resourceCache;
 	}
 
-	MeshResource* ResourceLoader::loadMeshFromFile(const std::string& path)
+	Handle<Mesh> ResourceLoader::loadMeshFromFile(const std::string& path)
 	{
 		/* VULPES ENGINE MESH FORMAT SPECIFICATION
 		Header:
@@ -39,14 +38,16 @@ namespace vul
 			uvcoords(vertex count): {float, float}
 		*/
 
-		if(m_resourceCache->hasResource(path))
-			return (MeshResource*)m_resourceCache->getResource(path);
+		if(m_resourceCache.hasResource(path))
+			return m_resourceCache.getMesh(path);
+
+		Handle<Mesh> mesh;
 
 		std::ifstream f(path, std::ifstream::binary);
 		if(!f)
 		{
 			Logger::log("vul::ResourceLoader::loadMeshFromFile: Failed to open file '%s'", path.c_str());
-			return nullptr;
+			return mesh;
 		}
 
 		int8_t magic[4];
@@ -55,7 +56,7 @@ namespace vul
 		{
 			Logger::log("vul::ResourceLoader::loadMeshFromFile: Invalid mesh format for file '%s'", path.c_str());
 			f.close();
-			return nullptr;
+			return mesh;
 		}
 
 		uint16_t version = 0;
@@ -64,7 +65,7 @@ namespace vul
 		{
 			Logger::log("vul::ResourceLoader::loadMeshFromFile: Invalid version number for file '%s'", path.c_str());
 			f.close();
-			return nullptr;
+			return mesh;
 		}
 
 		uint8_t flags;
@@ -72,115 +73,121 @@ namespace vul
 		bool hasNormals = (flags & 1) != 0;
 		bool hasUVcoords = (flags & 2) != 0;
 
-		uint32_t vcount;
+		uint32_t vcount = 0;
 		f.read((char*)&vcount, sizeof(uint32_t));
 		if(vcount == 0)
 		{
 			Logger::log("vul::ResourceLoader::loadMeshFromFile: No vertices in file '%s'", path.c_str());
 			f.close();
-			return nullptr;
+			return mesh;
 		}
 
-		uint32_t icount;
+		uint32_t icount = 0;
 		f.read((char*)&icount, sizeof(uint32_t));
 		if(icount == 0)
 		{
 			Logger::log("vul::ResourceLoader::loadMeshFromFile: No indices in file '%s'", path.c_str());
 			f.close();
-			return nullptr;
+			return mesh;
 		}
 
-		float* vertices = new float[vcount * 3];
-		uint32_t* indices = new uint32_t[icount];
-		float* normals = hasNormals ? new float[vcount * 3] : 0;
-		float* uvcoords = hasUVcoords ? new float[vcount * 2] : 0;
+		MeshData meshData(vcount, icount, hasNormals, hasUVcoords); // Diffuse not supported in VEM format yet
 
-		f.read((char*)vertices, sizeof(float) * vcount * 3);
-		f.read((char*)indices, sizeof(uint32_t) * icount);
-		if(hasNormals) f.read((char*)normals, sizeof(float) * vcount * 3);
-		if(hasUVcoords) f.read((char*)uvcoords, sizeof(float) * vcount * 2);
+		f.read((char*)meshData.vertices, sizeof(float) * meshData.vertexCount * 3);
+		f.read((char*)meshData.indices, sizeof(uint32_t) * meshData.indexCount);
+		if(hasNormals) f.read((char*)meshData.normals, sizeof(float) * meshData.vertexCount * 3);
+		if(hasUVcoords) f.read((char*)meshData.UVCoordinates, sizeof(float) * meshData.vertexCount * 2);
 		f.close();
 
-		MeshResource* mr = loadMeshFromData(vertices, vcount, indices, icount, normals, uvcoords);
+		mesh = loadMeshFromData(meshData);
 
-		delete[] vertices;
-		delete[] indices;
-		if(normals) delete[] normals;
-		if(uvcoords) delete[] uvcoords;
+		if(mesh.isLoaded())
+			m_resourceCache.addMesh(path, mesh);
 
-		m_resourceCache->addResource(path, mr);
-
-		return mr;
+		return mesh;
 	}
 
-	MeshResource* ResourceLoader::loadMeshFromData(float* vertices, uint32_t vertexCount, uint32_t* indices, uint32_t indexCount,
-		float* normals, float* uvcoords)
+	Handle<Mesh> ResourceLoader::loadMeshFromData(const MeshData& meshData)
 	{
-		MeshResource* mr = new MeshResource();
+		Handle<Mesh> mesh;
 
-		if(!vertices)
+		if(!meshData.vertices)
 		{
 			Logger::log("vul::ResourceLoader::loadMeshFromData: No data in vertices");
-			return nullptr;
+			return mesh;
 		}
 
-		if(!indices)
+		if(!meshData.indices)
 		{
 			Logger::log("vul::ResourceLoader::loadMeshFromData: No data in indices");
-			return nullptr;
+			return mesh;
 		}
 
-		mr->ic = indexCount;
+		mesh->ic = meshData.indexCount;
 		uint32_t vbo[3];
 
-		glGenVertexArrays(1, &mr->vao);
-		glBindVertexArray(mr->vao);
+		glGenVertexArrays(1, &mesh->vao);
+		glBindVertexArray(mesh->vao);
 
-		glGenBuffers(normals ? (uvcoords ? 3 : 2) : (uvcoords ? 2 : 1), vbo);
+		int vboCount = 1, vboIndex = 0;
+		if(meshData.normals) vboCount++;
+		if(meshData.UVCoordinates) vboCount++;
+		if(meshData.diffuse) vboCount++;
 
-		glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-		glBufferData(GL_ARRAY_BUFFER, vertexCount * 3 * sizeof(float), vertices, GL_STATIC_DRAW);
+		glGenBuffers(vboCount, vbo);
+
+		glBindBuffer(GL_ARRAY_BUFFER, vbo[vboIndex++]);
+		glBufferData(GL_ARRAY_BUFFER, meshData.vertexCount * 3 * sizeof(float), meshData.vertices, GL_STATIC_DRAW);
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 		glEnableVertexAttribArray(0);
 
-		if(normals)
+		if(meshData.normals)
 		{
-			glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
-			glBufferData(GL_ARRAY_BUFFER, vertexCount * 3 * sizeof(float), normals, GL_STATIC_DRAW);
+			glBindBuffer(GL_ARRAY_BUFFER, vbo[vboIndex++]);
+			glBufferData(GL_ARRAY_BUFFER, meshData.vertexCount * 3 * sizeof(float), meshData.normals, GL_STATIC_DRAW);
 			glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
 			glEnableVertexAttribArray(1);
 		}
 
-		if(uvcoords)
+		if(meshData.UVCoordinates)
 		{
-			glBindBuffer(GL_ARRAY_BUFFER, vbo[normals ? 2 : 1]);
-			glBufferData(GL_ARRAY_BUFFER, vertexCount * 2 * sizeof(float), uvcoords, GL_STATIC_DRAW);
+			glBindBuffer(GL_ARRAY_BUFFER, vbo[vboIndex++]);
+			glBufferData(GL_ARRAY_BUFFER, meshData.vertexCount * 2 * sizeof(float), meshData.UVCoordinates, GL_STATIC_DRAW);
 			glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
 			glEnableVertexAttribArray(2);
 		}
 
+		if(meshData.diffuse)
+		{
+			glBindBuffer(GL_ARRAY_BUFFER, vbo[vboIndex++]);
+			glBufferData(GL_ARRAY_BUFFER, meshData.vertexCount * 3 * sizeof(float), meshData.diffuse, GL_STATIC_DRAW);
+			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, 0);
+			glEnableVertexAttribArray(3);
+		}
+
 		glBindVertexArray(0);
 
-		glGenBuffers(1, &mr->ib);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mr->ib);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexCount * sizeof(uint32_t), indices, GL_STATIC_DRAW);
+		glGenBuffers(1, &mesh->ib);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ib);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, meshData.indexCount * sizeof(uint32_t), meshData.indices, GL_STATIC_DRAW);
 
-		return mr;
+		mesh.setLoaded();
+		return mesh;
 	}
 
-	TextureResource* ResourceLoader::loadTextureFromFile(const std::string& path)
+	Handle<Texture> ResourceLoader::loadTextureFromFile(const std::string& path)
 	{
-		if(m_resourceCache->hasResource(path))
-			return (TextureResource*)m_resourceCache->getResource(path);
+		if(m_resourceCache.hasResource(path))
+			return m_resourceCache.getTexture(path);
 
+		Handle<Texture> texture;
 		uint8_t header[124];
-		TextureResource* tr = new TextureResource();
 
 		std::ifstream f(path, std::ifstream::binary);
 		if(!f)
 		{
 			Logger::log("vul::ResourceLoader::loadTextureFromFile: Unable to open file '%s'", path.c_str());
-			return nullptr;
+			return texture;
 		}
 
 		char magic[4];
@@ -189,7 +196,7 @@ namespace vul
 		{
 			Logger::log("vul::ResourceLoader::loadTextureFromFile: Invalid file format for file '%s' (must be DDS)", path.c_str());
 			f.close();
-			return nullptr;
+			return texture;
 		}
 
 		f.read((char*)header, 124);
@@ -216,12 +223,12 @@ namespace vul
 		{
 			Logger::log("vul::ResourceLoader::loadTextureFromFile: DDS file '%s' is not DXT1, DXT3, or DXT5", path.c_str());
 			delete[] buffer;
-			return nullptr;
+			return texture;
 		} break;
 		}
 
-		glGenTextures(1, &tr->textureHandle);
-		glBindTexture(GL_TEXTURE_2D, tr->textureHandle);
+		glGenTextures(1, &texture->textureHandle);
+		glBindTexture(GL_TEXTURE_2D, texture->textureHandle);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, mipmapCount - 1);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 8.f);
 
@@ -239,127 +246,53 @@ namespace vul
 
 		delete[] buffer;
 
-		m_resourceCache->addResource(path, tr);
+		m_resourceCache.addTexture(path, texture);
 
-		return tr;
+		texture.setLoaded();
+		return texture;
 	}
 
-	MaterialResource* ResourceLoader::loadMaterialFromFile(const std::string& vsPath, const std::string& fsPath)
+	Handle<Mesh> ResourceLoader::getPlane()
 	{
-		if(m_resourceCache->hasResource(vsPath))
-			return (MaterialResource*)m_resourceCache->getResource(vsPath);
-
-		std::ifstream f(vsPath, std::ifstream::binary);
-		if(!f)
-		{
-			Logger::log("vul::ResourceLoader::loadMaterialFromFile: Unable to open file '%s'", vsPath.c_str());
-			return nullptr;
-		}
-
-		f.seekg(0, std::ios::end);
-		uint32_t size = f.tellg();
-		int8_t* vsContent = new int8_t[size + 1];
-		f.seekg(0, std::ios::beg);
-
-		f.read((char*)vsContent, sizeof(int8_t) * size);
-		vsContent[size] = 0;
-		f.close();
-
-		f.open(fsPath, std::ifstream::binary);
-		if(!f)
-		{
-			Logger::log("vul::ResourceLoader::loadMaterialFromFile: Unable to open file '%s'", fsPath.c_str());
-			delete[] vsContent;
-			return nullptr;
-		}
-
-		f.seekg(0, std::ios::end);
-		size = f.tellg();
-		int8_t* fsContent = new int8_t[size + 1];
-		f.seekg(0, std::ios::beg);
-
-		f.read((char*)fsContent, sizeof(int8_t) * size);
-		fsContent[size] = 0;
-		f.close();
-
-		MaterialResource* mr = loadMaterialFromText(vsContent, fsContent);
-
-		delete[] vsContent;
-		delete[] fsContent;
-
-		m_resourceCache->addResource(vsPath, mr);
-
-		return mr;
+		return m_resourceCache.getMesh("__vul_plane");
 	}
 
-	MaterialResource* ResourceLoader::loadMaterialFromText(const int8_t* vsContent, const int8_t* fsContent)
+	void ResourceLoader::createPlane()
 	{
-		MaterialResource* mr = new MaterialResource();
+		MeshData meshData(4, 6, true, false, true);
 
-		uint32_t vertexShader = glCreateShader(GL_VERTEX_SHADER);
-		uint32_t fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+		meshData.vertices[0] = -1.f;
+		meshData.vertices[1] = 0.f;
+		meshData.vertices[2] = -1.f;
 
-		glShaderSource(vertexShader, 1, (const GLchar**)&vsContent, 0);
-		glCompileShader(vertexShader);
-		if(!validateShader(vertexShader)) return nullptr;
+		meshData.vertices[3] = 1.f;
+		meshData.vertices[4] = 0.f;
+		meshData.vertices[5] = -1.f;
 
-		glShaderSource(fragmentShader, 1, (const GLchar**)&fsContent, 0);
-		glCompileShader(fragmentShader);
-		if(!validateShader(fragmentShader)) return nullptr;
+		meshData.vertices[6] = -1.f;
+		meshData.vertices[7] = 0.f;
+		meshData.vertices[8] = 1.f;
 
-		mr->programHandle = glCreateProgram();
+		meshData.vertices[9] = 1.f;
+		meshData.vertices[10] = 0.f;
+		meshData.vertices[11] = 1.f;
 
-		glAttachShader(mr->programHandle, vertexShader);
-		glAttachShader(mr->programHandle, fragmentShader);
+		meshData.indices[0] = 0;
+		meshData.indices[1] = 2;
+		meshData.indices[2] = 1;
 
-		glBindAttribLocation(mr->programHandle, 0, "inPosition");
-		glBindAttribLocation(mr->programHandle, 1, "inNormal");
-		glBindAttribLocation(mr->programHandle, 2, "inUVCoords");
+		meshData.indices[3] = 1;
+		meshData.indices[4] = 2;
+		meshData.indices[5] = 3;
 
-		glLinkProgram(mr->programHandle);
-		if(!validateProgram(mr->programHandle)) return nullptr;
-
-		return mr;
-	}
-
-	bool ResourceLoader::validateShader(uint32_t shaderHandle)
-	{
-		char buffer[2048];
-		memset(buffer, 0, 2048);
-		GLsizei len = 0;
-
-		glGetShaderInfoLog(shaderHandle, 2048, &len, buffer);
-		if(len > 0)
+		for(uint32_t i = 0; i < meshData.vertexCount * 3; i++)
 		{
-			Logger::log("vul::ResourceLoader::validateShader: Failed to compile shader - %s", buffer);
-			return false;
+			meshData.normals[i] = ((i + 2) % 3 == 0) ? 1.f : 0.f; // <0.f, 1.f, 0.f>
+			meshData.diffuse[i] = ((i + 2) % 3 == 0) ? .8f : .1f; // <.1f, .8f, .1f>
 		}
 
-		return true;
-	}
-
-	bool ResourceLoader::validateProgram(uint32_t programHandle)
-	{
-		char buffer[2048];
-		memset(buffer, 0, 2048);
-		GLsizei len = 0;
-
-		glGetProgramInfoLog(programHandle, 2048, &len, buffer);
-		if(len > 0)
-		{
-			Logger::log("vul::ResourceLoader::validateProgram: Failed to link program - %s", buffer);
-			return false;
-		}
-
-		glValidateProgram(programHandle);
-		GLint status;
-		glGetProgramiv(programHandle, GL_VALIDATE_STATUS, &status);
-		if(status == GL_FALSE)
-		{
-			Logger::log("vul::ResourceLoader::validateProgram: Failed to validate program");
-			return false;
-		}
-
-		return true;
+		Handle<Mesh> plane = loadMeshFromData(meshData);
+		if(plane.isLoaded())
+			m_resourceCache.addMesh("__vul_plane", plane);
 	}
 }

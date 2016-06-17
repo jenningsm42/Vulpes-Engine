@@ -1,6 +1,7 @@
 #ifndef _VUL_INPUTHANDLER_H
 #define _VUL_INPUTHANDLER_H
 #include "Export.h"
+#include "Handle.h"
 #include <cstdint>
 struct GLFWwindow;
 
@@ -157,6 +158,7 @@ namespace vul
 		static void eventCallback(GLFWwindow*, int key, int scancode, int action, int mods);
 
 		friend class Engine;
+		friend class Handle<InputHandler>;
 	};
 }
 

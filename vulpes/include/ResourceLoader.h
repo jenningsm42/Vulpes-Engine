@@ -3,13 +3,44 @@
 #include <string>
 #include "Export.h"
 #include <cstdint>
-#include "MeshResource.h"
-#include "TextureResource.h"
-#include "MaterialResource.h"
+#include "ResourceCache.h"
+#include "Mesh.h"
+#include "Texture.h"
+#include "Material.h"
 
 namespace vul
 {
-	class ResourceCache;
+	struct MeshData
+	{
+		MeshData(uint32_t vertexCount, uint32_t indexCount,
+			bool hasNormals = false, bool hasUVCoordinates = false,
+			bool hasDiffuse = false) : vertexCount(vertexCount),
+			indexCount(indexCount)
+		{
+			vertices = new float[vertexCount * 3];
+			indices = new uint32_t[indexCount];
+			normals = hasNormals ? new float[vertexCount * 3] : nullptr;
+			UVCoordinates = hasUVCoordinates ? new float[vertexCount * 2] : nullptr;
+			diffuse = hasDiffuse ? new float[vertexCount * 3] : nullptr;
+		}
+
+		~MeshData()
+		{
+			if(vertices) delete[] vertices;
+			if(indices) delete[] indices;
+			if(normals) delete[] normals;
+			if(UVCoordinates) delete[] UVCoordinates;
+			if(diffuse) delete[] diffuse;
+		}
+
+		float* vertices;
+		uint32_t* indices;
+		float* normals;
+		float* UVCoordinates;
+		float* diffuse;
+		uint32_t vertexCount;
+		uint32_t indexCount;
+	};
 
 	class VEAPI ResourceLoader
 	{
@@ -17,20 +48,17 @@ namespace vul
 		ResourceLoader();
 		~ResourceLoader();
 
-		MeshResource* loadMeshFromFile(const std::string& path);
-		MeshResource* loadMeshFromData(float* vertices, uint32_t vertexCount,
-			uint32_t* indices, uint32_t indexCount, float* normals = 0, float* uvcoords = 0);
+		Handle<Mesh> loadMeshFromFile(const std::string& path);
+		Handle<Mesh> loadMeshFromData(const MeshData&);
 
-		TextureResource* loadTextureFromFile(const std::string& path);
+		Handle<Texture> loadTextureFromFile(const std::string& path);
 
-		MaterialResource* loadMaterialFromFile(const std::string& vsPath, const std::string& fsPath);
-		MaterialResource* loadMaterialFromText(const int8_t* vsContent, const int8_t* fsContent);
+		Handle<Mesh> getPlane();
 
 	private:
-		ResourceCache* m_resourceCache;
+		ResourceCache m_resourceCache;
 
-		inline bool validateShader(uint32_t shaderHandle);
-		inline bool validateProgram(uint32_t programHandle);
+		void createPlane();
 	};
 }
 
