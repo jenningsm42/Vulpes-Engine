@@ -1,0 +1,2 @@
+- The engine will look for these shaders in the "data" folder relative to the executable (i.e. data/geometryPass.fs).
+- In lightPass.fs, modify LIGHT_COUNT to the number of lights you currently have. This workaround is only temporary.
