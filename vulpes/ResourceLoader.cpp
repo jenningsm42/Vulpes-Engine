@@ -24,11 +24,12 @@ namespace vul
 		/* VULPES ENGINE MESH FORMAT SPECIFICATION
 		Header:
 		magic(4): int8_t[4] "VULP"
-		version(2): uint16_t 0x0003
+		version(2): uint16_t 0x0004
 		flags(1): uint8_t
 			bit 0: set = has normals
 			bit 1: set = has uvcoords
-			bits 2-7: reserved
+			bit 2: set = has tangent and bitangents
+			bits 3-7: reserved
 		vertex count(4): uint32_t
 		index count(4): uint32_t
 		Data:
@@ -36,6 +37,8 @@ namespace vul
 			indices(vertex count): {uint32_t}
 			normals(vertex count): {float, float, float}
 			uvcoords(vertex count): {float, float}
+			tangents(vertex count): {float, float, float}
+			bitangents(vertex count): {float, float, float}
 		*/
 
 		if(m_resourceCache.hasResource(path))
@@ -61,7 +64,7 @@ namespace vul
 
 		uint16_t version = 0;
 		f.read((char*)&version, sizeof(uint16_t));
-		if(version != 0x0003)
+		if(version != 0x0005)
 		{
 			Logger::log("vul::ResourceLoader::loadMeshFromFile: Invalid version number for file '%s'", path.c_str());
 			f.close();
@@ -72,6 +75,7 @@ namespace vul
 		f.read((char*)&flags, sizeof(uint8_t));
 		bool hasNormals = (flags & 1) != 0;
 		bool hasUVcoords = (flags & 2) != 0;
+		bool hasTB = (flags & 4) != 0;
 
 		uint32_t vcount = 0;
 		f.read((char*)&vcount, sizeof(uint32_t));
@@ -91,11 +95,16 @@ namespace vul
 			return mesh;
 		}
 
-		MeshData meshData(vcount, icount, hasNormals, hasUVcoords); // Diffuse not supported in VEM format yet
+		MeshData meshData(vcount, icount, hasNormals, hasUVcoords, hasTB); // Diffuse not supported in VEM format yet
 
 		f.read((char*)meshData.vertices, sizeof(float) * meshData.vertexCount * 3);
 		f.read((char*)meshData.indices, sizeof(uint32_t) * meshData.indexCount);
 		if(hasNormals) f.read((char*)meshData.normals, sizeof(float) * meshData.vertexCount * 3);
+		if(hasTB)
+		{
+			f.read((char*)meshData.tangents, sizeof(float) * meshData.vertexCount * 3);
+			f.read((char*)meshData.bitangents, sizeof(float) * meshData.vertexCount * 3);
+		}
 		if(hasUVcoords) f.read((char*)meshData.UVCoordinates, sizeof(float) * meshData.vertexCount * 2);
 		f.close();
 
@@ -124,23 +133,25 @@ namespace vul
 		}
 
 		mesh->ic = meshData.indexCount;
-		uint32_t vbo[3];
+		uint32_t vbo[6];
 
 		glGenVertexArrays(1, &mesh->vao);
 		glBindVertexArray(mesh->vao);
 
 		int vboCount = 1, vboIndex = 0;
 		if(meshData.normals) vboCount++;
+		if(meshData.tangents && meshData.bitangents) vboCount += 2; // Need both
 		if(meshData.UVCoordinates) vboCount++;
-		if(meshData.diffuse) vboCount++;
 
 		glGenBuffers(vboCount, vbo);
 
+		// Vertices
 		glBindBuffer(GL_ARRAY_BUFFER, vbo[vboIndex++]);
 		glBufferData(GL_ARRAY_BUFFER, meshData.vertexCount * 3 * sizeof(float), meshData.vertices, GL_STATIC_DRAW);
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 		glEnableVertexAttribArray(0);
 
+		// Normals
 		if(meshData.normals)
 		{
 			glBindBuffer(GL_ARRAY_BUFFER, vbo[vboIndex++]);
@@ -149,20 +160,27 @@ namespace vul
 			glEnableVertexAttribArray(1);
 		}
 
+		// Tangents and bitangents
+		if(meshData.tangents && meshData.bitangents)
+		{
+			glBindBuffer(GL_ARRAY_BUFFER, vbo[vboIndex++]);
+			glBufferData(GL_ARRAY_BUFFER, meshData.vertexCount * 3 * sizeof(float), meshData.tangents, GL_STATIC_DRAW);
+			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
+			glEnableVertexAttribArray(3);
+
+			glBindBuffer(GL_ARRAY_BUFFER, vbo[vboIndex++]);
+			glBufferData(GL_ARRAY_BUFFER, meshData.vertexCount * 3 * sizeof(float), meshData.bitangents, GL_STATIC_DRAW);
+			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, 0);
+			glEnableVertexAttribArray(4);
+		}
+
+		// UV Coordinates
 		if(meshData.UVCoordinates)
 		{
 			glBindBuffer(GL_ARRAY_BUFFER, vbo[vboIndex++]);
 			glBufferData(GL_ARRAY_BUFFER, meshData.vertexCount * 2 * sizeof(float), meshData.UVCoordinates, GL_STATIC_DRAW);
-			glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
+			glVertexAttribPointer(4, 2, GL_FLOAT, GL_FALSE, 0, 0);
 			glEnableVertexAttribArray(2);
-		}
-
-		if(meshData.diffuse)
-		{
-			glBindBuffer(GL_ARRAY_BUFFER, vbo[vboIndex++]);
-			glBufferData(GL_ARRAY_BUFFER, meshData.vertexCount * 3 * sizeof(float), meshData.diffuse, GL_STATIC_DRAW);
-			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, 0);
-			glEnableVertexAttribArray(3);
 		}
 
 		glBindVertexArray(0);
@@ -252,6 +270,33 @@ namespace vul
 		return texture;
 	}
 
+	Handle<Texture> ResourceLoader::loadTextureFromColor(float red, float green, float blue)
+	{
+		char path[25];
+		sprintf(path, "__vul_r%1.3fg%1.3fb%1.3f", red, green, blue);
+
+		if(m_resourceCache.hasResource(path))
+			m_resourceCache.getTexture(path);
+
+		Handle<Texture> texture;
+
+		float* data = new float[3];
+		data[0] = red;
+		data[1] = green;
+		data[2] = blue;
+
+		glGenTextures(1, &texture->textureHandle);
+		glBindTexture(GL_TEXTURE_2D, texture->textureHandle);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_FLOAT, data);
+
+		delete[] data;
+
+		m_resourceCache.addTexture(path, texture);
+
+		texture.setLoaded();
+		return texture;
+	}
+
 	Handle<Mesh> ResourceLoader::getPlane()
 	{
 		return m_resourceCache.getMesh("__vul_plane");
@@ -259,7 +304,7 @@ namespace vul
 
 	void ResourceLoader::createPlane()
 	{
-		MeshData meshData(4, 6, true, false, true);
+		MeshData meshData(4, 6, true, true, true);
 
 		meshData.vertices[0] = -1.f;
 		meshData.vertices[1] = 0.f;
@@ -285,10 +330,23 @@ namespace vul
 		meshData.indices[4] = 2;
 		meshData.indices[5] = 3;
 
+		meshData.UVCoordinates[0] = 0.1f;
+		meshData.UVCoordinates[1] = 0.1f;
+
+		meshData.UVCoordinates[2] = 0.9f;
+		meshData.UVCoordinates[3] = 0.1f;
+
+		meshData.UVCoordinates[4] = 0.1f;
+		meshData.UVCoordinates[5] = 0.9f;
+
+		meshData.UVCoordinates[6] = 0.9f;
+		meshData.UVCoordinates[7] = 0.9f;
+
 		for(uint32_t i = 0; i < meshData.vertexCount * 3; i++)
 		{
 			meshData.normals[i] = ((i + 2) % 3 == 0) ? 1.f : 0.f; // <0.f, 1.f, 0.f>
-			meshData.diffuse[i] = ((i + 2) % 3 == 0) ? .8f : .1f; // <.1f, .8f, .1f>
+			meshData.tangents[i] = (i % 3 == 0) ? 1.f : 0.f; // <1.f, 0.f, 0.f>
+			meshData.bitangents[i] = ((i + 1) % 3 == 0)? 0.f : -1.f; // <0.f, 0.f, -1.f>
 		}
 
 		Handle<Mesh> plane = loadMeshFromData(meshData);

@@ -114,6 +114,8 @@ namespace vul
 			Handle<RenderableObject> currentObject = m_scene->getRenderableObjectByIndex(i);
 			Handle<Mesh> mesh = currentObject->getMesh();
 			Handle<Texture> colorMap = currentObject->getColorMap();
+			Handle<Texture> normalMap = currentObject->getNormalMap();
+			Handle<Texture> roughnessMap = currentObject->getRoughnessMap();
 			tmpPolycount += mesh->ic / 3;
 
 			// Local transformations
@@ -131,10 +133,25 @@ namespace vul
 				glUniform1i(static_cast<GLint>(DeferredGeometryUniformLocations::ColorMap), 0);
 			}
 
+			if(normalMap->textureHandle != 0)
+			{
+				glActiveTexture(GL_TEXTURE1);
+				glBindTexture(GL_TEXTURE_2D, normalMap->textureHandle);
+
+				glUniform1i(static_cast<GLint>(DeferredGeometryUniformLocations::NormalMap), 1);
+			}
+
+			if(roughnessMap->textureHandle != 0)
+			{
+				glActiveTexture(GL_TEXTURE2);
+				glBindTexture(GL_TEXTURE_2D, roughnessMap->textureHandle);
+
+				glUniform1i(static_cast<GLint>(DeferredGeometryUniformLocations::RoughnessMap), 2);
+			}
+
 			// Extra
 			glUniform1f(static_cast<GLint>(DeferredGeometryUniformLocations::Near), m_camera->getNear());
 			glUniform1f(static_cast<GLint>(DeferredGeometryUniformLocations::ReflectionCoefficient), currentObject->getReflectionCoefficient());
-			glUniform1f(static_cast<GLint>(DeferredGeometryUniformLocations::Roughness), currentObject->getRoughness());
 
 			// Meshes
 			glBindVertexArray(mesh->vao);

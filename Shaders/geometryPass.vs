@@ -7,22 +7,27 @@ layout (location=12) uniform float near;
 
 layout (location=0) in vec3 inPosition;
 layout (location=1) in vec3 inNormal;
-layout (location=2) in vec2 inUVCoords;
-layout (location=3) in vec3 inDiffuse;
+layout (location=2) in vec3 inTangent;
+layout (location=3) in vec3 inBitangent;
+layout (location=4) in vec2 inUVCoords;
 
 out float passDepthZ;
 out float passDepthW;
 out vec3 passNormal;
+out vec3 passTangent;
+out vec3 passBitangent;
 out vec2 passUVCoords;
-out vec3 passDiffuse;
 
 void main()
 {
 	vec4 calculatedPosition = projMat * viewMat * modelMat * vec4(inPosition, 1.0);
+	mat3 viewMat3 = mat3(viewMat);
+	
 	gl_Position = calculatedPosition;
 	passDepthZ = calculatedPosition.z + near;
 	passDepthW = calculatedPosition.w + near;
-	passNormal = mat3(viewMat) * inNormal;
+	passNormal = viewMat3 * inNormal;
 	passUVCoords = inUVCoords;
-	passDiffuse = inDiffuse;
+	passTangent = viewMat3 * inTangent;
+	passBitangent = viewMat3 * inBitangent;
 }

@@ -1,6 +1,6 @@
 #version 330 core
 #extension GL_ARB_explicit_uniform_location : enable
-#define LIGHT_COUNT 64
+#define LIGHT_COUNT 3
 
 struct PointLight // 3 uniform locations
 {
@@ -46,7 +46,8 @@ float fresnelSchlick(float f0, float cosineFactor)
 
 float distributionGGX(float NdotH, float roughness)
 {
-	float alphaSq = roughness * roughness;
+	float alpha = roughness * roughness;
+	float alphaSq = alpha * alpha;
 	float denom = (NdotH * NdotH) * (alphaSq - 1.0) + 1.0;
 	return alphaSq / (3.14159 * denom * denom);
 }
@@ -85,9 +86,14 @@ vec3 calculateLightContribution(PointLight pl, vec3 view, vec3 normal, vec3 posi
 {
 	// Calculate light value based on distance and attenuation
 	vec3 pixelToLight = pl.position - position;
-	float distSq = dot(pixelToLight, pixelToLight);
-	float attenuation = 1.0 / (1.0 + 0.1 * distSq);
-	vec3 lightValue = attenuation * pl.color * pl.intensity;
+	float dist = length(pixelToLight);
+	float radius = 0.5; // Testing spherical lighting
+	float att_denom = 1.0 + dist / radius;
+	float attenuation = 1.0 / (att_denom * att_denom);
+	vec3 lightValue = pl.color * pl.intensity;
+	
+	// Continue?
+	if(attenuation < 0.00001) return vec3(0, 0, 0);
 	
 	// Calculate light and half vectors
 	vec3 light = normalize(pixelToLight);
@@ -105,7 +111,7 @@ vec3 calculateLightContribution(PointLight pl, vec3 view, vec3 normal, vec3 posi
 	// Calculate diffuse
 	vec3 diff = brdfLambert(color);
 	
-	return radiance(spec, diff, NdotL) * lightValue;
+	return radiance(spec, diff, NdotL) * attenuation * lightValue;
 }
 
 void main()
@@ -118,6 +124,9 @@ void main()
 	float f0 = misc.x;
 	float roughness = misc.y;
 	
+	//test
+	color = pow(color, vec3(2.2));
+	
 	vec3 position = getPixelPosition(depth);
 	vec3 view = normalize(-position); // in view space already
 	
@@ -125,5 +134,9 @@ void main()
 	for(int i = 0; i < LIGHT_COUNT; i++)
 		totalLightContribution += calculateLightContribution(light[i], view, normal, position, color, f0, roughness);
 	
-	outColor = vec4(totalLightContribution, 1.0);
+	// Gamma correction
+	vec3 gamma = vec3(1.0 / 2.2);
+	vec3 finalColor = pow(totalLightContribution, gamma);
+	
+	outColor = vec4(finalColor, 1.0);
 }

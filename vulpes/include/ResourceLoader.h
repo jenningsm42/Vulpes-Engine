@@ -13,15 +13,16 @@ namespace vul
 	struct MeshData
 	{
 		MeshData(uint32_t vertexCount, uint32_t indexCount,
-			bool hasNormals = false, bool hasUVCoordinates = false,
-			bool hasDiffuse = false) : vertexCount(vertexCount),
+			bool hasNormals = false, bool hasTB = false,
+			bool hasUVCoordinates = false) : vertexCount(vertexCount),
 			indexCount(indexCount)
 		{
 			vertices = new float[vertexCount * 3];
 			indices = new uint32_t[indexCount];
 			normals = hasNormals ? new float[vertexCount * 3] : nullptr;
+			tangents = hasTB ? new float[vertexCount * 3] : nullptr;
+			bitangents = hasTB ? new float[vertexCount * 3] : nullptr;
 			UVCoordinates = hasUVCoordinates ? new float[vertexCount * 2] : nullptr;
-			diffuse = hasDiffuse ? new float[vertexCount * 3] : nullptr;
 		}
 
 		~MeshData()
@@ -30,14 +31,16 @@ namespace vul
 			if(indices) delete[] indices;
 			if(normals) delete[] normals;
 			if(UVCoordinates) delete[] UVCoordinates;
-			if(diffuse) delete[] diffuse;
+			if(tangents) delete[] tangents;
+			if(bitangents) delete[] bitangents;
 		}
 
 		float* vertices;
 		uint32_t* indices;
 		float* normals;
+		float* tangents;
+		float* bitangents;
 		float* UVCoordinates;
-		float* diffuse;
 		uint32_t vertexCount;
 		uint32_t indexCount;
 	};
@@ -52,6 +55,7 @@ namespace vul
 		Handle<Mesh> loadMeshFromData(const MeshData&);
 
 		Handle<Texture> loadTextureFromFile(const std::string& path);
+		Handle<Texture> loadTextureFromColor(float red, float green, float blue);
 
 		Handle<Mesh> getPlane();
 

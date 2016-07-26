@@ -17,8 +17,9 @@ namespace vul
 		ModelMatrix = 8,
 		Near = 12,
 		ReflectionCoefficient = 13,
-		Roughness = 14,
-		ColorMap = 15
+		ColorMap = 14,
+		NormalMap = 15,
+		RoughnessMap = 16
 	};
 
 	enum struct DeferredLightUniformLocations

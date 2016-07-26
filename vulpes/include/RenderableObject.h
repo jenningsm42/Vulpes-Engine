@@ -16,23 +16,22 @@ namespace vul
 
 		void attachMesh(const Handle<Mesh>&);
 		void attachColorMap(const Handle<Texture>&);
-		void attachSpecularMap(const Handle<Texture>&);
 		void attachNormalMap(const Handle<Texture>&);
+		void attachRoughnessMap(const Handle<Texture>&);
 		void setRefractiveIndex(float n);
-		void setRoughness(float); // To be converted into a map/texture
 
 		Handle<Mesh> getMesh();
 		Handle<Texture> getColorMap();
+		Handle<Texture> getNormalMap();
+		Handle<Texture> getRoughnessMap();
 		float getReflectionCoefficient();
-		float getRoughness();
 
 	private:
 		Mesh m_mesh;
 		Texture m_colorMap; // Analogous with albedo map
-		Texture m_specularMap;
 		Texture m_normalMap;
+		Texture m_roughnessMap;
 		float m_reflectionCoefficient; // f0 -- for fresnel term (can be mapped)
-		float m_roughness; // for specular BRDF (can be mapped)
 	};
 }
 

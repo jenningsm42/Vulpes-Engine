@@ -4,7 +4,7 @@
 namespace vul
 {
 	PointLight::PointLight(uint32_t id) : m_intensity(10.f),
-		SceneObject(id, SceneObjectType::PointLight)
+		m_color(glm::vec3(1.f, 1.f, 1.f)), SceneObject(id, SceneObjectType::PointLight)
 	{
 	}
 

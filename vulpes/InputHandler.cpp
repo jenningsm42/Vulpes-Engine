@@ -63,6 +63,7 @@ namespace vul
 
 	void InputHandler::eventCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 	{
+		if(key == -1) return; // Occurs when pressing ALT + PrntScrn
 		if(action == GLFW_PRESS)
 			keys[key] = true;
 		else if(action == GLFW_RELEASE)

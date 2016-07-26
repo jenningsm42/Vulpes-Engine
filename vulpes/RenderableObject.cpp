@@ -5,8 +5,7 @@ namespace vul
 {
 	RenderableObject::RenderableObject(uint32_t id)
 		: SceneObject(id, SceneObjectType::Renderable),
-		m_reflectionCoefficient(0.15f), // From polycarbonate refractive index
-		m_roughness(0.5f)
+		m_reflectionCoefficient(0.15f) // From polycarbonate refractive index
 	{
 	}
 
@@ -14,10 +13,9 @@ namespace vul
 	{
 		m_mesh = other.m_mesh;
 		m_colorMap = other.m_colorMap;
-		m_specularMap = other.m_specularMap;
 		m_normalMap = other.m_normalMap;
+		m_roughnessMap = other.m_roughnessMap;
 		m_reflectionCoefficient = other.m_reflectionCoefficient;
-		m_roughness = other.m_roughness;
 	}
 
 	void RenderableObject::attachMesh(const Handle<Mesh>& mesh)
@@ -30,9 +28,9 @@ namespace vul
 		m_colorMap = tex.makeCopy();
 	}
 
-	void RenderableObject::attachSpecularMap(const Handle<Texture>& tex)
+	void RenderableObject::attachRoughnessMap(const Handle<Texture>& tex)
 	{
-		m_specularMap = tex.makeCopy();
+		m_roughnessMap = tex.makeCopy();
 	}
 
 	void RenderableObject::attachNormalMap(const Handle<Texture>& tex)
@@ -46,11 +44,6 @@ namespace vul
 		m_reflectionCoefficient = tmp * tmp;
 	}
 
-	void RenderableObject::setRoughness(float roughness)
-	{
-		m_roughness = roughness;
-	}
-
 	Handle<Mesh> RenderableObject::getMesh()
 	{
 		return Handle<Mesh>(m_mesh);
@@ -61,13 +54,18 @@ namespace vul
 		return Handle<Texture>(m_colorMap);
 	}
 
+	Handle<Texture> RenderableObject::getNormalMap()
+	{
+		return Handle<Texture>(m_normalMap);
+	}
+
+	Handle<Texture> RenderableObject::getRoughnessMap()
+	{
+		return Handle<Texture>(m_roughnessMap);
+	}
+
 	float RenderableObject::getReflectionCoefficient()
 	{
 		return m_reflectionCoefficient;
-	}
-
-	float RenderableObject::getRoughness()
-	{
-		return m_roughness;
 	}
 }
