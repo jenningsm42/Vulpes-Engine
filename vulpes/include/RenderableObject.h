@@ -19,12 +19,14 @@ namespace vul
 		void attachNormalMap(const Handle<Texture>&);
 		void attachRoughnessMap(const Handle<Texture>&);
 		void setRefractiveIndex(float n);
+		void setVisible(bool visible);
 
 		Handle<Mesh> getMesh();
 		Handle<Texture> getColorMap();
 		Handle<Texture> getNormalMap();
 		Handle<Texture> getRoughnessMap();
 		float getReflectionCoefficient();
+		bool getVisible();
 
 	private:
 		Mesh m_mesh;
@@ -32,6 +34,7 @@ namespace vul
 		Texture m_normalMap;
 		Texture m_roughnessMap;
 		float m_reflectionCoefficient; // f0 -- for fresnel term (can be mapped)
+		bool m_visible;
 	};
 }
 

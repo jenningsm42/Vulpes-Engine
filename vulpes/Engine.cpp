@@ -79,7 +79,7 @@ namespace vul
 #if _DEBUG
 		GLenum err;
 		while(err = glGetError())
-			Logger::log("OpenGL Error: %d", err);
+			Logger::log("OpenGL Error: 0x%x", err);
 #endif // _DEBUG
 	}
 

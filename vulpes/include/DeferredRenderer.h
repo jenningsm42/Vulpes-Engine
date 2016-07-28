@@ -11,7 +11,6 @@ namespace vul
 {
 	enum struct DeferredGeometryUniformLocations
 	{
-		// Geometry shader
 		ViewMatrix = 0,
 		ProjectionMatrix = 4,
 		ModelMatrix = 8,
@@ -30,7 +29,9 @@ namespace vul
 		MiscBuffer = 3,
 		Near = 4,
 		Far = 5,
-		LightArray = 6
+		InverseViewMatrix = 6,
+		EnvironmentMap = 9,
+		LightArray = 10
 	};
 
 	class VEAPI DeferredRenderer : public Renderer
@@ -40,6 +41,7 @@ namespace vul
 		~DeferredRenderer();
 
 		void setActiveCamera(Camera&) override;
+		void setActiveEnvironment(Handle<Texture>);
 
 		void render() override;
 
@@ -50,6 +52,7 @@ namespace vul
 		GBuffer m_gbuffer;
 		Handle<Material> m_geometryShader;
 		Handle<Material> m_lightShader;
+		Handle<Texture> m_environmentMap;
 		Mesh m_quadMesh;
 		float m_color[4];
 		bool m_wireframe;

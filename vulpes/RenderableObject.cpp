@@ -5,7 +5,8 @@ namespace vul
 {
 	RenderableObject::RenderableObject(uint32_t id)
 		: SceneObject(id, SceneObjectType::Renderable),
-		m_reflectionCoefficient(0.15f) // From polycarbonate refractive index
+		m_reflectionCoefficient(0.15f), // From polycarbonate refractive index
+		m_visible(true)
 	{
 	}
 
@@ -16,6 +17,7 @@ namespace vul
 		m_normalMap = other.m_normalMap;
 		m_roughnessMap = other.m_roughnessMap;
 		m_reflectionCoefficient = other.m_reflectionCoefficient;
+		m_visible = other.m_visible;
 	}
 
 	void RenderableObject::attachMesh(const Handle<Mesh>& mesh)
@@ -44,6 +46,11 @@ namespace vul
 		m_reflectionCoefficient = tmp * tmp;
 	}
 
+	void RenderableObject::setVisible(bool visible)
+	{
+		m_visible = visible;
+	}
+
 	Handle<Mesh> RenderableObject::getMesh()
 	{
 		return Handle<Mesh>(m_mesh);
@@ -67,5 +74,10 @@ namespace vul
 	float RenderableObject::getReflectionCoefficient()
 	{
 		return m_reflectionCoefficient;
+	}
+
+	bool RenderableObject::getVisible()
+	{
+		return m_visible;
 	}
 }

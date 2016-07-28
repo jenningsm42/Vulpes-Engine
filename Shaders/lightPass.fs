@@ -15,7 +15,9 @@ layout (location=2) uniform sampler2D tDepth;
 layout (location=3) uniform sampler2D tMisc;
 layout (location=4) uniform float near;
 layout (location=5) uniform float far;
-layout (location=6) uniform PointLight light[LIGHT_COUNT];
+layout (location=6) uniform mat3 invViewMat;
+layout (location=9) uniform samplerCube tEnvironment;
+layout (location=10) uniform PointLight light[LIGHT_COUNT];
 
 in vec2 passUVCoords;
 in vec3 passFrustumRays;
@@ -77,12 +79,12 @@ vec3 brdfLambert(vec3 reflectivity)
 	return reflectivity / 3.14159;
 }
 
-vec3 radiance(float spec, vec3 diff, float NdotL)
+vec3 radiance(vec3 spec, vec3 diff, float NdotL)
 {
-	return (vec3(spec) + diff) * NdotL;
+	return (spec + diff) * NdotL;
 }
 
-vec3 calculateLightContribution(PointLight pl, vec3 view, vec3 normal, vec3 position, vec3 color, float f0, float roughness)
+vec3 calculateLightContribution(PointLight pl, vec3 view, vec3 normal, vec3 position, vec3 color, float f0, float roughness, vec3 reflection, vec3 diffIBL)
 {
 	// Calculate light value based on distance and attenuation
 	vec3 pixelToLight = pl.position - position;
@@ -90,10 +92,8 @@ vec3 calculateLightContribution(PointLight pl, vec3 view, vec3 normal, vec3 posi
 	float radius = 0.5; // Testing spherical lighting
 	float att_denom = 1.0 + dist / radius;
 	float attenuation = 1.0 / (att_denom * att_denom);
-	vec3 lightValue = pl.color * pl.intensity;
-	
-	// Continue?
-	if(attenuation < 0.00001) return vec3(0, 0, 0);
+	if(attenuation < 0.00001) return vec3(0, 0, 0); // Continue?
+	vec3 lightValue = pl.color * pl.intensity * attenuation;
 	
 	// Calculate light and half vectors
 	vec3 light = normalize(pixelToLight);
@@ -106,12 +106,12 @@ vec3 calculateLightContribution(PointLight pl, vec3 view, vec3 normal, vec3 posi
 	float HdotV = max(dot(half, view), 0.001);
 	
 	// Calculate specular lighting
-	float spec = brdfSpec(f0, NdotH, NdotV, NdotL, HdotV, roughness);
+	float spec = brdfSpec(f0, NdotH, NdotV, NdotL, HdotV, pow(roughness, 2.0));
 	
 	// Calculate diffuse
 	vec3 diff = brdfLambert(color);
 	
-	return radiance(spec, diff, NdotL) * attenuation * lightValue;
+	return radiance(vec3(spec), diff, NdotL) * lightValue;
 }
 
 void main()
@@ -124,19 +124,26 @@ void main()
 	float f0 = misc.x;
 	float roughness = misc.y;
 	
-	//test
-	color = pow(color, vec3(2.2));
-	
 	vec3 position = getPixelPosition(depth);
 	vec3 view = normalize(-position); // in view space already
 	
-	vec3 totalLightContribution = vec3(0.0);
-	for(int i = 0; i < LIGHT_COUNT; i++)
-		totalLightContribution += calculateLightContribution(light[i], view, normal, position, color, f0, roughness);
-	
-	// Gamma correction
-	vec3 gamma = vec3(1.0 / 2.2);
-	vec3 finalColor = pow(totalLightContribution, gamma);
-	
-	outColor = vec4(finalColor, 1.0);
+	if(depth > 0.0)
+	{
+		// Calculate cubemap Color
+		vec3 reflected = invViewMat * -reflect(view, normal).xyz;
+		vec3 reflectedColorIBL = texture(tEnvironment, reflected).rgb;
+		vec3 diffuseColorIBL = texture(tEnvironment, invViewMat * normal).rgb;
+		
+		// Calculate dynamic lighting
+		vec3 totalLightContribution = vec3(0.0);
+		for(int i = 0; i < LIGHT_COUNT; i++)
+			totalLightContribution += calculateLightContribution(light[i], view, normal, position, color, f0, roughness, reflectedColorIBL, diffuseColorIBL);
+
+		// Gamma correction
+		vec3 gamma = vec3(1.0 / 2.2);
+		vec3 finalColor = pow(totalLightContribution, gamma);
+
+		outColor = vec4(finalColor, 1.0);
+	}
+	else outColor = vec4(texture(tEnvironment, invViewMat * view).rgb, 1.0);
 }

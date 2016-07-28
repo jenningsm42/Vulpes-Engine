@@ -57,12 +57,24 @@ namespace vul
 		Handle<Texture> loadTextureFromFile(const std::string& path);
 		Handle<Texture> loadTextureFromColor(float red, float green, float blue);
 
+		Handle<Texture> loadCubeMap(const std::string& frontPath,
+									const std::string& backPath,
+									const std::string& topPath,
+									const std::string& bottomPath,
+									const std::string& leftPath,
+									const std::string& rightPath);
+
 		Handle<Mesh> getPlane();
+		Handle<Mesh> getSphere();
 
 	private:
 		ResourceCache m_resourceCache;
 
 		void createPlane();
+		void createSphere();
+
+		bool loadCubeMapSide(const std::string& path, Handle<Texture> texture,
+			uint32_t side);
 	};
 }
 

@@ -39,6 +39,11 @@ namespace vul
 		m_gbuffer.initialize(camera.getWidth(), camera.getHeight());
 	}
 
+	void DeferredRenderer::setActiveEnvironment(Handle<Texture> environmentMap)
+	{
+		m_environmentMap = environmentMap;
+	}
+
 	void DeferredRenderer::render()
 	{
 		if(m_error) return;
@@ -112,6 +117,8 @@ namespace vul
 		for(uint32_t i = 0; i < m_scene->getSceneObjectCount(SceneObjectType::Renderable); i++)
 		{
 			Handle<RenderableObject> currentObject = m_scene->getRenderableObjectByIndex(i);
+			if(!currentObject->getVisible()) continue;
+
 			Handle<Mesh> mesh = currentObject->getMesh();
 			Handle<Texture> colorMap = currentObject->getColorMap();
 			Handle<Texture> normalMap = currentObject->getNormalMap();
@@ -193,6 +200,13 @@ namespace vul
 
 		glUniform1f(static_cast<GLint>(DeferredLightUniformLocations::Near), m_camera->getNear());
 		glUniform1f(static_cast<GLint>(DeferredLightUniformLocations::Far), m_camera->getFar());
+
+		glm::mat3 invViewMat = glm::inverse(glm::mat3(m_camera->getViewMatrix()));
+		glUniformMatrix3fv(static_cast<GLint>(DeferredLightUniformLocations::InverseViewMatrix), 1, GL_FALSE, &invViewMat[0][0]);
+
+		glActiveTexture(GL_TEXTURE4);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, m_environmentMap->textureHandle);
+		glUniform1i(static_cast<GLint>(DeferredLightUniformLocations::EnvironmentMap), 4);
 
 		// Lights
 		for(uint32_t i = 0; i < m_scene->getSceneObjectCount(SceneObjectType::PointLight); i++)
