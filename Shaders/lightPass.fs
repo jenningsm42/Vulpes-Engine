@@ -101,12 +101,12 @@ vec3 radiance(vec3 spec, vec3 diff, float NdotL)
 	return (spec + diff) * NdotL;
 }
 
-vec3 blendMaterial(vec3 diffuse, vec3 specular, vec3 color, float metallic)
+vec3 blendMaterial(vec3 diffuse, vec3 specular, vec3 color, float metallic, float fresnel)
 {
-	return specular * mix(vec3(0.08), color, metallic) + diffuse * (1.0 - metallic);
+	return diffuse * (1.0 - metallic) * (1.0 - fresnel) + specular * mix(vec3(fresnel), color, metallic);
 }
 
-vec3 calculateLightContribution(PointLight pl, vec3 view, vec3 normal, vec3 position, vec3 color, float metallic, float roughness)
+vec3 calculateLightContribution(PointLight pl, vec3 view, vec3 normal, float NdotV, vec3 position, vec3 color, float metallic, float roughness)
 {
 	// Calculate light value based on distance and attenuation
 	vec3 pixelToLight = pl.position - position;
@@ -123,7 +123,6 @@ vec3 calculateLightContribution(PointLight pl, vec3 view, vec3 normal, vec3 posi
 
 	// Calculate required dot products, clamped
 	float NdotH = max(dot(normal, half), 0.001);
-	float NdotV = max(dot(normal, view), 0.001);
 	float NdotL = max(dot(normal, light), 0.001);
 	float HdotV = max(dot(half, view), 0.001);
 	
@@ -134,10 +133,9 @@ vec3 calculateLightContribution(PointLight pl, vec3 view, vec3 normal, vec3 posi
 	vec3 diffuse = brdfLambert(color);
 	
 	// Calculate fresnel term
-	float fresnel = fresnelSchlick(metallic, HdotV);
+	float fresnel = fresnelSchlick(metallic, NdotV);
 	
-	return blendMaterial(diffuse, vec3(specular), color, metallic) * NdotL;
-	//return mix(diffuse, vec3(specular), fresnel) * lightValue * NdotL;
+	return blendMaterial(diffuse, vec3(specular), color, metallic, fresnel) * NdotL;
 }
 
 float radicalInverse(uint bits)
@@ -235,17 +233,20 @@ void main()
 		vec3 normalWorld = invViewMat * normal;
 		
 		vec2 misc = texture(tMisc, passUVCoords).xy;
-		float metallic = clamp(misc.x, 0.02, 0.99);
+		float metallic = clamp(misc.x, 0.0334, 0.99);
 		float roughness = clamp(misc.y, 0.01, 1.0);
+		
+		float NdotV = max(dot(normal, view), 0.001);
 		
 		// Calculate dynamic lighting
 		vec3 totalLightContribution = vec3(0.0);
 		for(int i = 0; i < LIGHT_COUNT; i++)
-			totalLightContribution += calculateLightContribution(light[i], view, normal, position, color, metallic, roughness);
+			totalLightContribution += calculateLightContribution(light[i], view, normal, NdotV, position, color, metallic, roughness);
 
+		float fresnel = mix(fresnelSchlick(metallic, NdotV), 0.03, roughness);
 		vec3 spec = approximateSpecIBL(mix(vec3(1.0), color, metallic), roughness, normalWorld, viewWorld);
 		vec3 diff = textureLod(tDiffuseEnvironment, normalWorld, 0.0).rgb * color;
-		totalLightContribution += blendMaterial(diff, spec, color, metallic);
+		totalLightContribution += blendMaterial(diff, spec, color, metallic, fresnel);
 		
 		// Tone mapping
 		vec3 toneMappedColor = totalLightContribution / (totalLightContribution + vec3(1.0));
@@ -256,5 +257,5 @@ void main()
 		
 		outColor = vec4(finalColor, 1.0);
 	}
-	else outColor = vec4(textureLod(tEnvironment, viewWorld, 1.0).rgb, 1.0);
+	else outColor = vec4(textureLod(tEnvironment, viewWorld, 0.0).rgb, 1.0);
 }
