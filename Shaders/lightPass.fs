@@ -103,7 +103,7 @@ vec3 radiance(vec3 spec, vec3 diff, float NdotL)
 
 vec3 blendMaterial(vec3 diffuse, vec3 specular, vec3 color, float metallic)
 {
-	return specular * mix(vec3(0.03), color, metallic) + diffuse * (1.0 - metallic);
+	return specular * mix(vec3(0.08), color, metallic) + diffuse * (1.0 - metallic);
 }
 
 vec3 calculateLightContribution(PointLight pl, vec3 view, vec3 normal, vec3 position, vec3 color, float metallic, float roughness)
@@ -238,13 +238,12 @@ void main()
 		float metallic = clamp(misc.x, 0.02, 0.99);
 		float roughness = clamp(misc.y, 0.01, 1.0);
 		
-		
 		// Calculate dynamic lighting
 		vec3 totalLightContribution = vec3(0.0);
 		for(int i = 0; i < LIGHT_COUNT; i++)
 			totalLightContribution += calculateLightContribution(light[i], view, normal, position, color, metallic, roughness);
 
-		vec3 spec = approximateSpecIBL(vec3(1.0), roughness, normalWorld, viewWorld);
+		vec3 spec = approximateSpecIBL(mix(vec3(1.0), color, metallic), roughness, normalWorld, viewWorld);
 		vec3 diff = textureLod(tDiffuseEnvironment, normalWorld, 0.0).rgb * color;
 		totalLightContribution += blendMaterial(diff, spec, color, metallic);
 		
@@ -257,5 +256,5 @@ void main()
 		
 		outColor = vec4(finalColor, 1.0);
 	}
-	else outColor = vec4(textureLod(tEnvironment, viewWorld, 0.0).rgb, 1.0);
+	else outColor = vec4(textureLod(tEnvironment, viewWorld, 1.0).rgb, 1.0);
 }

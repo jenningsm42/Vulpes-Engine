@@ -30,6 +30,7 @@ def write_data(context, filepath, use_modifiers, use_normals, use_uvcoords, calc
     sce = bpy.context.scene
     ob = sce.objects.active
     me = ob.to_mesh(sce, use_modifiers, 'PREVIEW')
+    me.calc_tangents()
     
     # Set Y-axis to vertical axis
     mat_rot = mathutils.Matrix.Rotation(radians(90.0), 3, 'X')
@@ -78,58 +79,12 @@ def write_data(context, filepath, use_modifiers, use_normals, use_uvcoords, calc
         normals = []
         tangents = []
         bitangents = []
-        for face, i in zip(faces, range(0, len(faces))):
-            # Get vertices and UV coordinates for each triangle
-            v1 = verts[face.vertices[0]].co*mat_rot
-            v2 = verts[face.vertices[1]].co*mat_rot
-            v3 = verts[face.vertices[2]].co*mat_rot
-            
-            uv1 = uvdata[i].uv[0]
-            uv2 = uvdata[i].uv[1]
-            uv3 = uvdata[i].uv[2]
-            
-            # Get normals
-            n1 = verts[face.vertices[0]].normal*mat_rot
-            n2 = verts[face.vertices[1]].normal*mat_rot
-            n3 = verts[face.vertices[2]].normal*mat_rot
-            
-            # Find edge of triangle
-            deltaPos1 = v2 - v1
-            deltaPos2 = v3 - v1
-            
-            deltaUV1 = [uv2[0] - uv1[0], uv2[1] - uv1[1]]
-            deltaUV2 = [uv3[0] - uv1[0], uv3[1] - uv1[1]]
-            
-            # Get aligned tangent and bitangent vectors
-            tangent = 0
-            bitangent = 0
-            
-            r_denom = deltaUV1[0] * deltaUV2[1] - deltaUV1[1] * deltaUV2[0]
-            if r_denom == 0.0:
-                tangent = deltaPos1 * deltaUV2[1] - deltaPos2 * deltaUV1[1]
-                bitangent = deltaPos2 * deltaUV1[0] - deltaPos1 * deltaUV2[0]
-                tangent.normalize()
-                bitangent.normalize()
-            else:
-                r = 1.0 / r_denom
-                tangent = (deltaPos1 * deltaUV2[1] - deltaPos2 * deltaUV1[1]) * r
-                bitangent = (deltaPos2 * deltaUV1[0] - deltaPos1 * deltaUV2[0]) * r            
-            
-            # Use Graham-Schmidt process to create orthonormal basis
-            tangentOrthog1 = tangent - n1 * (n1.dot(tangent))
-            tangentOrthog2 = tangent - n2 * (n2.dot(tangent))
-            tangentOrthog3 = tangent - n3 * (n3.dot(tangent))
-            bitangentOrthog1 = bitangent - n1 * (n1.dot(bitangent)) - tangentOrthog1 * (tangentOrthog1.dot(bitangent))
-            bitangentOrthog2 = bitangent - n2 * (n2.dot(bitangent)) - tangentOrthog2 * (tangentOrthog2.dot(bitangent))
-            bitangentOrthog3 = bitangent - n3 * (n3.dot(bitangent)) - tangentOrthog3 * (tangentOrthog3.dot(bitangent))
-            
-            tangents.append(tangentOrthog1)
-            tangents.append(tangentOrthog2)
-            tangents.append(tangentOrthog3)
-            bitangents.append(bitangentOrthog1)
-            bitangents.append(bitangentOrthog2)
-            bitangents.append(bitangentOrthog3)
-        
+        for face in me.polygons:
+            for vert in [me.loops[i] for i in face.loop_indices]:
+                tangents.append(vert.tangent)
+                normals.append(vert.normal)
+                bitangents.append(vert.bitangent_sign * normals[-1].cross(tangents[-1]))
+                
         for tangent in tangents[:]:
             for c in tangent[:]:
                 f.write(struct.pack('f', c))
