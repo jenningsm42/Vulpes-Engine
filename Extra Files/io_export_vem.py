@@ -99,13 +99,21 @@ def write_data(context, filepath, use_modifiers, use_normals, use_uvcoords, calc
             
             deltaUV1 = [uv2[0] - uv1[0], uv2[1] - uv1[1]]
             deltaUV2 = [uv3[0] - uv1[0], uv3[1] - uv1[1]]
-            r = 1.0 / (deltaUV1[0] * deltaUV2[1] - deltaUV1[1] * deltaUV2[0])
             
             # Get aligned tangent and bitangent vectors
-            tangent = ((deltaPos1 * deltaUV2[1] - deltaPos2 * deltaUV1[1]) * r)
-            bitangent = ((deltaPos2 * deltaUV1[0] - deltaPos1 * deltaUV2[0]) * r)
-            tangent.normalize()
-            bitangent.normalize()
+            tangent = 0
+            bitangent = 0
+            
+            r_denom = deltaUV1[0] * deltaUV2[1] - deltaUV1[1] * deltaUV2[0]
+            if r_denom == 0.0:
+                tangent = deltaPos1 * deltaUV2[1] - deltaPos2 * deltaUV1[1]
+                bitangent = deltaPos2 * deltaUV1[0] - deltaPos1 * deltaUV2[0]
+                tangent.normalize()
+                bitangent.normalize()
+            else:
+                r = 1.0 / r_denom
+                tangent = (deltaPos1 * deltaUV2[1] - deltaPos2 * deltaUV1[1]) * r
+                bitangent = (deltaPos2 * deltaUV1[0] - deltaPos1 * deltaUV2[0]) * r            
             
             # Use Graham-Schmidt process to create orthonormal basis
             tangentOrthog1 = tangent - n1 * (n1.dot(tangent))

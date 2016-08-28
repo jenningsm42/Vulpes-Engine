@@ -1,13 +1,11 @@
 #define VULPESENGINE_EXPORT
 #include "include/ResourceLoader.h"
+#include "include/RenderTarget.h"
+#include "include/CustomRenderer.h"
 #include "Logger.h"
 #include <gl/glew.h>
 #include <glm/glm.hpp>
 #include <fstream>
-
-#define FOURCC_DXT1 0x31545844 // DXT1
-#define FOURCC_DXT3 0x33545844 // DXT3
-#define FOURCC_DXT5 0x35545844 // DXT5
 
 namespace vul
 {
@@ -15,6 +13,8 @@ namespace vul
 	{
 		createPlane();
 		createSphere();
+		createQuad();
+		createIBLLUT();
 	}
 
 	ResourceLoader::~ResourceLoader()
@@ -23,94 +23,25 @@ namespace vul
 
 	Handle<Mesh> ResourceLoader::loadMeshFromFile(const std::string& path)
 	{
-		/* VULPES ENGINE MESH FORMAT SPECIFICATION
-		Header:
-		magic(4): int8_t[4] "VULP"
-		version(2): uint16_t 0x0004
-		flags(1): uint8_t
-			bit 0: set = has normals
-			bit 1: set = has uvcoords
-			bit 2: set = has tangent and bitangents
-			bits 3-7: reserved
-		vertex count(4): uint32_t
-		index count(4): uint32_t
-		Data:
-			vertex coordinates(vertex count): {float, float, float}
-			indices(vertex count): {uint32_t}
-			normals(vertex count): {float, float, float}
-			uvcoords(vertex count): {float, float}
-			tangents(vertex count): {float, float, float}
-			bitangents(vertex count): {float, float, float}
-		*/
 
 		if(m_resourceCache.hasResource(path))
 			return m_resourceCache.getMesh(path);
 
-		Handle<Mesh> mesh;
-
-		std::ifstream f(path, std::ifstream::binary);
-		if(!f)
+		std::vector<uint8_t> fileData = readFile(path);
+		if(fileData.size() == 0)
 		{
-			Logger::log("vul::ResourceLoader::loadMeshFromFile: Failed to open file '%s'", path.c_str());
-			return mesh;
+			Logger::log("vul::ResourceLoader::loadMeshFromFile: Returned empty '%s'", path.c_str());
+			return Handle<Mesh>();
 		}
 
-		int8_t magic[4];
-		f.read((char*)magic, 4);
-		if(memcmp(magic, "VULP", 4))
+		MeshData meshData;
+		if(!m_parserVEM.parse(&meshData, fileData.data(), fileData.size()))
 		{
-			Logger::log("vul::ResourceLoader::loadMeshFromFile: Invalid mesh format for file '%s'", path.c_str());
-			f.close();
-			return mesh;
+			Logger::log("vul::ResourceLoader::loadMeshFromFile: Unable to load '%s'", path.c_str());
+			return Handle<Mesh>();
 		}
 
-		uint16_t version = 0;
-		f.read((char*)&version, sizeof(uint16_t));
-		if(version != 0x0005)
-		{
-			Logger::log("vul::ResourceLoader::loadMeshFromFile: Invalid version number for file '%s'", path.c_str());
-			f.close();
-			return mesh;
-		}
-
-		uint8_t flags;
-		f.read((char*)&flags, sizeof(uint8_t));
-		bool hasNormals = (flags & 1) != 0;
-		bool hasUVcoords = (flags & 2) != 0;
-		bool hasTB = (flags & 4) != 0;
-
-		uint32_t vcount = 0;
-		f.read((char*)&vcount, sizeof(uint32_t));
-		if(vcount == 0)
-		{
-			Logger::log("vul::ResourceLoader::loadMeshFromFile: No vertices in file '%s'", path.c_str());
-			f.close();
-			return mesh;
-		}
-
-		uint32_t icount = 0;
-		f.read((char*)&icount, sizeof(uint32_t));
-		if(icount == 0)
-		{
-			Logger::log("vul::ResourceLoader::loadMeshFromFile: No indices in file '%s'", path.c_str());
-			f.close();
-			return mesh;
-		}
-
-		MeshData meshData(vcount, icount, hasNormals, hasUVcoords, hasTB); // Diffuse not supported in VEM format yet
-
-		f.read((char*)meshData.vertices, sizeof(float) * meshData.vertexCount * 3);
-		f.read((char*)meshData.indices, sizeof(uint32_t) * meshData.indexCount);
-		if(hasNormals) f.read((char*)meshData.normals, sizeof(float) * meshData.vertexCount * 3);
-		if(hasTB)
-		{
-			f.read((char*)meshData.tangents, sizeof(float) * meshData.vertexCount * 3);
-			f.read((char*)meshData.bitangents, sizeof(float) * meshData.vertexCount * 3);
-		}
-		if(hasUVcoords) f.read((char*)meshData.UVCoordinates, sizeof(float) * meshData.vertexCount * 2);
-		f.close();
-
-		mesh = loadMeshFromData(meshData);
+		Handle<Mesh> mesh = loadMeshFromData(meshData);
 
 		if(mesh.isLoaded())
 			m_resourceCache.addMesh(path, mesh);
@@ -120,22 +51,21 @@ namespace vul
 
 	Handle<Mesh> ResourceLoader::loadMeshFromData(const MeshData& meshData)
 	{
-		Handle<Mesh> mesh;
-
 		if(!meshData.vertices)
 		{
 			Logger::log("vul::ResourceLoader::loadMeshFromData: No data in vertices");
-			return mesh;
+			return Handle<Mesh>();
 		}
 
 		if(!meshData.indices)
 		{
 			Logger::log("vul::ResourceLoader::loadMeshFromData: No data in indices");
-			return mesh;
+			return Handle<Mesh>();
 		}
 
+		Handle<Mesh> mesh;
 		mesh->ic = meshData.indexCount;
-		uint32_t vbo[6];
+		uint32_t vbo[5];
 
 		glGenVertexArrays(1, &mesh->vao);
 		glBindVertexArray(mesh->vao);
@@ -200,75 +130,64 @@ namespace vul
 		if(m_resourceCache.hasResource(path))
 			return m_resourceCache.getTexture(path);
 
+		// Read file
+		std::vector<uint8_t> fileData = readFile(path);
+		if(fileData.size() == 0)
+		{
+			Logger::log("vul::ResourceLoader::loadTextureFromFile: Returned empty '%s'", path);
+			return Handle<Texture>();
+		}
+
+		// Parse data
+		const uint8_t* buffer = reinterpret_cast<const uint8_t*>(fileData.data());
+		if(!m_imageParser.parse(buffer, fileData.size()))
+		{
+			Logger::log("vul::ResourceLoader::loadTextureFromFile: Unable to load '%s'", path);
+			return Handle<Texture>();
+		}
+
+		// Query for image information
+		ImageInfo info = m_imageParser.getImageInfo();
+
 		Handle<Texture> texture;
-		uint8_t header[124];
-
-		std::ifstream f(path, std::ifstream::binary);
-		if(!f)
-		{
-			Logger::log("vul::ResourceLoader::loadTextureFromFile: Unable to open file '%s'", path.c_str());
-			return texture;
-		}
-
-		char magic[4];
-		f.read(magic, 4);
-		if(strncmp(magic, "DDS ", 4))
-		{
-			Logger::log("vul::ResourceLoader::loadTextureFromFile: Invalid file format for file '%s' (must be DDS)", path.c_str());
-			f.close();
-			return texture;
-		}
-
-		f.read((char*)header, 124);
-		uint32_t height = *(uint32_t*)&header[8];
-		uint32_t width = *(uint32_t*)&header[12];
-		uint32_t linearSize = *(uint32_t*)&header[16];
-		uint32_t mipmapCount = *(uint32_t*)&header[24];
-		uint32_t fourCC = *(uint32_t*)&header[80];
-
-		if(mipmapCount == 0) mipmapCount = 1;
-
-		uint32_t len = mipmapCount > 1 ? linearSize * 2 : linearSize;
-		uint8_t* buffer = new uint8_t[len];
-		f.read((char*)buffer, len);
-		f.close();
-
-		uint32_t format = 0;
-		switch(fourCC)
-		{
-		case FOURCC_DXT1: format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT; break;
-		case FOURCC_DXT3: format = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT; break;
-		case FOURCC_DXT5: format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT; break;
-		default:
-		{
-			Logger::log("vul::ResourceLoader::loadTextureFromFile: DDS file '%s' is not DXT1, DXT3, or DXT5", path.c_str());
-			delete[] buffer;
-			return texture;
-		} break;
-		}
-
 		glGenTextures(1, &texture->textureHandle);
 		glBindTexture(GL_TEXTURE_2D, texture->textureHandle);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, mipmapCount - 1);
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, info.numMipMaps > 1? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, info.numMipMaps);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 8.f);
 
-		uint32_t blockSize = (fourCC == FOURCC_DXT1 ? 8 : 16);
-		uint32_t offset = 0;
-
-		for(uint32_t level = 0; level < mipmapCount && (width || height); level++)
+		// Upload all mipmaps
+		uint32_t width = info.width;
+		uint32_t height = info.height;
+		for(uint32_t i = 0; i < info.numMipMaps; i++)
 		{
-			uint32_t size = ((width + 3) / 4) * ((height + 3) / 4) * blockSize;
-			glCompressedTexImage2D(GL_TEXTURE_2D, level, format, width, height, 0, size, &buffer[offset]);
-			offset += size;
+			uint32_t size = m_imageParser.getSize(i);
+			if(info.s3tc)
+			{
+				uint8_t* data = new uint8_t[size];
+				m_imageParser.getIntImage(data, i);
+				glCompressedTexImage2D(GL_TEXTURE_2D, i, info.internalFormat, width, height, 0, size, data);
+				delete[] data;
+			}
+			else
+			{
+				// Since only DDS and HDR are supported, uncompressed images are assumed to be floating point textures
+				float* data = new float[size];
+				m_imageParser.getFloatImage(data, i);
+				glTexImage2D(GL_TEXTURE_2D, i, info.internalFormat, width, height, 0, info.format, info.channelType, data);
+				delete[] data;
+			}
 			width /= 2;
 			height /= 2;
 		}
 
-		delete[] buffer;
-
-		m_resourceCache.addTexture(path, texture);
-
 		texture.setLoaded();
+
+		if(texture.isLoaded())
+			m_resourceCache.addTexture(path, texture);
+
 		return texture;
 	}
 
@@ -280,13 +199,12 @@ namespace vul
 		if(m_resourceCache.hasResource(path))
 			m_resourceCache.getTexture(path);
 
-		Handle<Texture> texture;
-
 		float* data = new float[3];
 		data[0] = red;
 		data[1] = green;
 		data[2] = blue;
 
+		Handle<Texture> texture;
 		glGenTextures(1, &texture->textureHandle);
 		glBindTexture(GL_TEXTURE_2D, texture->textureHandle);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_FLOAT, data);
@@ -299,36 +217,252 @@ namespace vul
 		return texture;
 	}
 
-	Handle<Texture> ResourceLoader::loadCubeMap(const std::string& frontPath, const std::string & backPath, const std::string & topPath, const std::string & bottomPath, const std::string & leftPath, const std::string & rightPath)
+	Handle<Texture> ResourceLoader::loadCubeMap(const std::string& frontPath, const std::string & backPath, const std::string & topPath, const std::string & bottomPath, const std::string & leftPath, const std::string & rightPath, bool prefilter)
 	{
 		std::string resourcePath = frontPath + backPath + topPath + bottomPath + leftPath + rightPath;
 		if(m_resourceCache.hasResource(resourcePath))
 			return m_resourceCache.getTexture(resourcePath);
 
 		Handle<Texture> texture;
-
 		glGenTextures(1, &texture->textureHandle);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, texture->textureHandle);
 
-		bool success = loadCubeMapSide(rightPath, texture, 0);
-		success &= loadCubeMapSide(leftPath, texture, 1);
-		success &= loadCubeMapSide(topPath, texture, 2);
-		success &= loadCubeMapSide(bottomPath, texture, 3);
-		success &= loadCubeMapSide(frontPath, texture, 4);
-		success &= loadCubeMapSide(backPath, texture, 5);
-
-		if(!success) return texture; // Error message in loadCubeMapSide
-
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+		uint32_t width = 0;
+		bool result = loadCubeMapSide(rightPath, texture, 0, &width);
+		result &= loadCubeMapSide(leftPath, texture, 1);
+		result &= loadCubeMapSide(topPath, texture, 2);
+		result &= loadCubeMapSide(bottomPath, texture, 3);
+		result &= loadCubeMapSide(frontPath, texture, 4);
+		result &= loadCubeMapSide(backPath, texture, 5);
+
+		if(!result)
+		{
+			glDeleteTextures(1, &texture->textureHandle);
+			return texture; // Error message in loadCubeMapSide
+		}
+
+		if(prefilter) prefilterCubeMap(texture, width);
 
 		m_resourceCache.addTexture(resourcePath, texture);
 
 		texture.setLoaded();
 		return texture;
+	}
+
+	Handle<Texture> ResourceLoader::loadCubeMapCross(const std::string& path, bool prefilter)
+	{
+		if(m_resourceCache.hasResource(path))
+			return m_resourceCache.getTexture(path);
+
+		// Read file
+		std::vector<uint8_t> fileData = readFile(path);
+		if(fileData.size() == 0)
+		{
+			Logger::log("vul::ResourceLoader::loadCubeMapCross: Returned empty '%s'", path.c_str());
+			return Handle<Texture>();
+		}
+
+		// Parse data
+		const uint8_t* buffer = reinterpret_cast<const uint8_t*>(fileData.data());
+		if(!m_imageParser.parse(buffer, fileData.size()))
+		{
+			Logger::log("vul::ResourceLoader::loadCubeMapCross: Unable to load '%s'", path.c_str());
+			return Handle<Texture>();
+		}
+
+		// Query for image information
+		ImageInfo info = m_imageParser.getImageInfo();
+
+		// Cannot splice compressed images
+		if(info.s3tc)
+		{
+			Logger::log("vul::ResourceLoader::loadCubeMapCross: Cannot splice compressed images '%s'", path.c_str());
+			return Handle<Texture>();
+		}
+
+		// Ensure aspect ratio is correct
+		bool vertical = false;
+		if(info.width / 3 == info.height / 4) vertical = true;
+		else if(info.width / 4 == info.height / 3) vertical = false; // Horizontal
+		else
+		{
+			Logger::log("vul::ResourceLoader::loadCubeMapCross: Incorrect aspect ratio '%s'", path.c_str());
+			return Handle<Texture>();
+		}
+
+		Handle<Texture> texture;
+		glGenTextures(1, &texture->textureHandle);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, texture->textureHandle);
+
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+		// Upload all mipmaps
+		uint32_t width = info.width;
+		uint32_t height = info.height;
+		for(uint32_t i = 0; i < info.numMipMaps; i++)
+		{
+			uint32_t sideWidth = vertical? width / 3 : width / 4;
+
+			// TODO: Only HDR/float textures supported for cubemap cross right now, update for future formats
+			float* data = new float[m_imageParser.getSize(i)];
+			float* sideData = new float[sideWidth * sideWidth * info.numChannels];
+			m_imageParser.getFloatImage(data, i); // TODO: check rtn
+
+			for(uint32_t k = 0; k < 6; k++)
+			{
+				uint32_t yStart, yEnd, xStart, xEnd;
+
+				// Right, left, top, bottom, and front coordinates are equivalent regardless of orientation
+				switch(k)
+				{
+				case 0: // Right
+				{
+					yStart = sideWidth;
+					yEnd = 2 * sideWidth;
+					xStart = 2 * sideWidth;
+					xEnd = 3 * sideWidth;
+				} break;
+				case 1: // Left
+				{
+					yStart = sideWidth;
+					yEnd = 2 * sideWidth;
+					xStart = 0;
+					xEnd = sideWidth;
+				} break;
+				case 2: // Top
+				{
+					yStart = 0;
+					yEnd = sideWidth;
+					xStart = sideWidth;
+					xEnd = 2 * sideWidth;
+				} break;
+				case 3: // Bottom
+				{
+					yStart = 2 * sideWidth;
+					yEnd = 3 * sideWidth;
+					xStart = sideWidth;
+					xEnd = 2 * sideWidth;
+				} break;
+				case 4: // Front
+				{
+					yStart = sideWidth;
+					yEnd = 2 * sideWidth;
+					xStart = sideWidth;
+					xEnd = 2 * sideWidth;
+				} break;
+				case 5: // Back
+				{
+					// TODO: turns out flipped
+					if(vertical)
+					{
+						yStart = 4 * sideWidth - 1;
+						yEnd = 3 * sideWidth - 1;
+						xStart = 2 * sideWidth - 1;
+						xEnd = sideWidth - 1;
+					}
+					else
+					{
+						yStart = sideWidth;
+						yEnd = 2 * sideWidth;
+						xStart = 3 * sideWidth;
+						xEnd = 4 * sideWidth;
+					}
+				} break;
+				}
+
+				uint32_t index = 0;
+				for(uint32_t y = yStart; (k == 5 && vertical)? y > yEnd : y < yEnd; (k == 5 && vertical)? y-- : y++)
+				{
+					for(uint32_t x = xStart; (k == 5 && vertical)? x > xEnd : x < xEnd; (k == 5 && vertical)? x-- : x++)
+					{
+						for(uint32_t j = 0; j < info.numChannels; j++)
+							sideData[index++] = data[info.numChannels * (x + y * width) + j];
+					}
+				}
+
+				glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + k, i, info.internalFormat, sideWidth, sideWidth, 0, info.format, info.channelType, sideData);
+			}
+			
+			delete[] sideData;
+			delete[] data;
+
+			width >>= 1;
+			height >>= 1;
+		}
+		if(info.numMipMaps == 1) glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+
+		if(prefilter) prefilterCubeMap(texture, vertical ? info.width / 3 : info.width / 4);
+
+		texture.setLoaded();
+
+		if(texture.isLoaded())
+			m_resourceCache.addTexture(path, texture);
+
+		return texture;
+	}
+
+	Handle<Shader> ResourceLoader::loadShaderFromFile(const std::string& vsPath, const std::string& fsPath)
+	{
+		if(m_resourceCache.hasResource(vsPath + fsPath))
+			m_resourceCache.getShader(vsPath + fsPath);
+
+		std::vector<uint8_t> vsData = readFile(vsPath);
+		if(vsData.size() == 0)
+		{
+			Logger::log("vul::ResourceLoader::loadShaderFromFile: '%s' returned empty", vsPath.c_str());
+			return Handle<Shader>();
+		}
+
+		std::vector<uint8_t> fsData = readFile(fsPath);
+		if(fsData.size() == 0)
+		{
+			Logger::log("vul::ResourceLoader::loadShaderFromFile: '%s' returned empty", fsPath.c_str());
+			return Handle<Shader>();
+		}
+
+		Handle<Shader> shader = loadShaderFromText(vsData.data(), fsData.data());
+
+		if(shader.isLoaded())
+			m_resourceCache.addShader(vsPath + fsPath, shader);
+
+		return shader;
+	}
+
+	Handle<Shader> ResourceLoader::loadShaderFromText(const uint8_t* vsContent, const uint8_t* fsContent)
+	{
+		Handle<Shader> shader;
+
+		uint32_t vertexShader = glCreateShader(GL_VERTEX_SHADER);
+		uint32_t fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+
+		glShaderSource(vertexShader, 1, reinterpret_cast<const GLchar**>(&vsContent), 0);
+		glCompileShader(vertexShader);
+		if(!validateShader(vertexShader)) return shader;
+
+		glShaderSource(fragmentShader, 1, reinterpret_cast<const GLchar**>(&fsContent), 0);
+		glCompileShader(fragmentShader);
+		if(!validateShader(fragmentShader)) return shader;
+
+		shader->programHandle = glCreateProgram();
+
+		glAttachShader(shader->programHandle, vertexShader);
+		glAttachShader(shader->programHandle, fragmentShader);
+
+		glLinkProgram(shader->programHandle);
+		if(!validateProgram(shader->programHandle)) return shader;
+
+		shader.setLoaded();
+		return shader;
 	}
 
 	Handle<Mesh> ResourceLoader::getPlane()
@@ -339,6 +473,57 @@ namespace vul
 	Handle<Mesh> ResourceLoader::getSphere()
 	{
 		return m_resourceCache.getMesh("__vul_sphere");
+	}
+
+	Handle<Mesh> ResourceLoader::getQuad()
+	{
+		return m_resourceCache.getMesh("__vul_quad");
+	}
+
+	Handle<ResourceCache> ResourceLoader::getResourceCache()
+	{
+		return Handle<ResourceCache>(m_resourceCache);
+	}
+
+	bool ResourceLoader::validateShader(uint32_t shaderHandle)
+	{
+		char buffer[2048];
+		memset(buffer, 0, 2048);
+		GLsizei len = 0;
+
+		glGetShaderInfoLog(shaderHandle, 2048, &len, buffer);
+		if(len > 0)
+		{
+			Logger::log("vul::ResourceLoader::validateShader: Failed to compile shader:\n%s", buffer);
+			return false;
+		}
+
+		return true;
+	}
+
+	bool ResourceLoader::validateProgram(uint32_t programHandle)
+	{
+		char buffer[2048];
+		memset(buffer, 0, 2048);
+		GLsizei len = 0;
+
+		glGetProgramInfoLog(programHandle, 2048, &len, buffer);
+		if(len > 0)
+		{
+			Logger::log("vul::ResourceLoader::validateProgram: Failed to link program:\n%s", buffer);
+			return false;
+		}
+
+		glValidateProgram(programHandle);
+		GLint status;
+		glGetProgramiv(programHandle, GL_VALIDATE_STATUS, &status);
+		if(status == GL_FALSE)
+		{
+			Logger::log("vul::ResourceLoader::validateProgram: Failed to validate program");
+			return false;
+		}
+
+		return true;
 	}
 
 	void ResourceLoader::createPlane()
@@ -370,22 +555,22 @@ namespace vul
 		meshData.indices[5] = 3;
 
 		meshData.UVCoordinates[0] = 0.f;
-		meshData.UVCoordinates[1] = 0.f;
+		meshData.UVCoordinates[1] = 1.f;
 
-		meshData.UVCoordinates[2] = 40.f;
-		meshData.UVCoordinates[3] = 0.f;
+		meshData.UVCoordinates[2] = 1.f;
+		meshData.UVCoordinates[3] = 1.f;
 
 		meshData.UVCoordinates[4] = 0.f;
-		meshData.UVCoordinates[5] = 40.f;
+		meshData.UVCoordinates[5] = 0.f;
 
-		meshData.UVCoordinates[6] = 40.f;
-		meshData.UVCoordinates[7] = 40.f;
+		meshData.UVCoordinates[6] = 1.f;
+		meshData.UVCoordinates[7] = 0.f;
 
 		for(uint32_t i = 0; i < meshData.vertexCount * 3; i++)
 		{
 			meshData.normals[i] = ((i + 2) % 3 == 0) ? 1.f : 0.f; // <0.f, 1.f, 0.f>
 			meshData.tangents[i] = (i % 3 == 0) ? 1.f : 0.f; // <1.f, 0.f, 0.f>
-			meshData.bitangents[i] = ((i + 1) % 3 == 0)? 0.f : -1.f; // <0.f, 0.f, -1.f>
+			meshData.bitangents[i] = ((i + 1) % 3 == 0)? -1.f : 0.f; // <0.f, 0.f, -1.f>
 		}
 
 		Handle<Mesh> plane = loadMeshFromData(meshData);
@@ -395,38 +580,20 @@ namespace vul
 
 	void ResourceLoader::createSphere()
 	{
-		MeshData meshData(32 * 30 + 2, (32 * 2 * 30) * 3, true, true, true);
+		const uint32_t resolution = 64;
 
-		// Top vertex
-		meshData.vertices[0] = 0.f;
-		meshData.vertices[1] = 1.f;
-		meshData.vertices[2] = 0.f;
+		MeshData meshData(resolution * (resolution + 1), ((resolution - 1) * resolution * 2) * 3, true, true, true);
 
-		meshData.normals[0] = 0.f;
-		meshData.normals[1] = 1.f;
-		meshData.normals[2] = 0.f;
-
-		meshData.tangents[0] = 1.f;
-		meshData.tangents[1] = 0.f;
-		meshData.tangents[2] = 0.f;
-
-		meshData.bitangents[0] = 0.f;
-		meshData.bitangents[1] = 0.f;
-		meshData.bitangents[2] = -1.f;
-
-		meshData.UVCoordinates[0] = 0.5f;
-		meshData.UVCoordinates[1] = 0.f;
-
-		// 30 rings of 32 vertices in the middle
-		uint32_t iter = 1;
-		for(uint32_t i = 1; i < 31; i++)
+		uint32_t iter = 0;
+		for(uint32_t i = 0; i < resolution; i++)
 		{
-			float vAngle = 3.14159f * (float)i / 32.f; // [0, pi]
+			float vAngle = 3.14159f * (float)i / float(resolution - 1); // [0, pi]
 			float y = cosf(vAngle);
 
-			for(uint32_t j = 0; j < 32; j++)
+			for(uint32_t j = 0; j < resolution + 1; j++)
 			{
-				float hAngle = 3.14159f * (float)j / 16.f; // [0, 2pi]
+				// Check is to ensure there is no seam due to floating point inaccuracy
+				float hAngle = (j == resolution)? 0.f : 3.14159f * (float)j / ((float)resolution / 2.f); // [0, 2pi]
 				float x = cosf(hAngle) * sinf(vAngle);
 				float z = sinf(hAngle) * sinf(vAngle);
 
@@ -441,9 +608,9 @@ namespace vul
 				meshData.normals[iter * 3 + 2] = z;
 
 				// Tangents are rotated pi/2 rad
-				meshData.tangents[iter * 3] = cosf(hAngle - 3.14159f / 2.f);
-				meshData.tangents[iter * 3 + 1] = sinf(hAngle - 3.14159f / 2.f);
-				meshData.tangents[iter * 3 + 2] = 0.f;
+				meshData.tangents[iter * 3] = cosf(hAngle - 3.14159f / 2.f) * sinf(vAngle);
+				meshData.tangents[iter * 3 + 1] = cosf(vAngle);
+				meshData.tangents[iter * 3 + 2] = sinf(hAngle - 3.14159f / 2.f) * sinf(vAngle);
 
 				// Bitangent is cross product of N and T
 				glm::vec3 n = glm::vec3(meshData.normals[iter * 3],
@@ -458,159 +625,215 @@ namespace vul
 				meshData.bitangents[iter * 3 + 1] = b.y;
 				meshData.bitangents[iter * 3 + 2] = b.z;
 
-				// Calculate UV coordinates
-				meshData.UVCoordinates[iter * 2] = 0.5f + atan2f(z, x) / (2.f * 3.14159f);
-				meshData.UVCoordinates[iter * 2 + 1] = 0.5f - asinf(y) / 3.14159f;
+				// UV coordinates are a plain grid
+				meshData.UVCoordinates[iter * 2] = 1.f - (float)j / (float)resolution;
+				meshData.UVCoordinates[iter * 2 + 1] = (float)i / float(resolution - 1);
 
 				iter++;
 			}
 		}
 
-		// Bottom vertex
-		meshData.vertices[2883] = 0.f;
-		meshData.vertices[2884] = -1.f;
-		meshData.vertices[2885] = 0.f;
-
-		meshData.normals[2883] = 0.f;
-		meshData.normals[2884] = -1.f;
-		meshData.normals[2885] = 0.f;
-
-		meshData.tangents[2883] = -1.f;
-		meshData.tangents[2884] = 0.f;
-		meshData.tangents[2885] = 0.f;
-
-		meshData.bitangents[2883] = 0.f;
-		meshData.bitangents[2884] = 0.f;
-		meshData.bitangents[2885] = 1.f;
-
-		meshData.UVCoordinates[1922] = 0.5f;
-		meshData.UVCoordinates[1923] = 1.f;
-
-		// Top indices
-		for(uint32_t i = 0; i < 31; i++)
+		iter = 0;
+		for(uint32_t i = 0; i < resolution - 1; i++)
 		{
-			meshData.indices[i * 3] = 0;
-			meshData.indices[i * 3 + 1] = i + 2;
-			meshData.indices[i * 3 + 2] = i + 1;
-		}
-
-		// Middle indices
-		iter = 96;
-		for(uint32_t i = 0; i < 29; i++)
-		{
-			for(uint32_t j = 0; j < 31; j++)
+			for(uint32_t j = 0; j < resolution; j++)
 			{
-				meshData.indices[iter++] = i * 32 + j + 1;
-				meshData.indices[iter++] = i * 32 + j + 2;
-				meshData.indices[iter++] = (i + 1) * 32 + j + 1;
+				meshData.indices[iter++] = i * (resolution + 1) + j;
+				meshData.indices[iter++] = i * (resolution + 1) + j + 1;
+				meshData.indices[iter++] = (i + 1) * (resolution + 1) + j;
 
-				meshData.indices[iter++] = (i + 1) * 32 + j + 1;
-				meshData.indices[iter++] = i * 32 + j + 2;
-				meshData.indices[iter++] = (i + 1) * 32 + j + 2;
+				meshData.indices[iter++] = (i + 1) * (resolution + 1) + j;
+				meshData.indices[iter++] = i * (resolution + 1) + j + 1;
+				meshData.indices[iter++] = (i + 1) * (resolution + 1) + j + 1;
 			}
 		}
-
-		// Bottom indices
-		for(uint32_t i = 0; i < 31; i++)
-		{
-			uint32_t offset = i + 1888;
-			meshData.indices[offset * 3] = 961;
-			meshData.indices[offset * 3 + 1] = i + 929;
-			meshData.indices[offset * 3 + 2] = i + 930;
-		}
-
-		// Stitch rest of sphere together
-		// Top
-		meshData.indices[93] = 0;
-		meshData.indices[94] = 1;
-		meshData.indices[95] = 32;
-
-		// Middle
-		for(uint32_t i = 0; i < 29; i++)
-		{
-			meshData.indices[iter++] = (i + 1) * 32;
-			meshData.indices[iter++] = i * 32 + 1;
-			meshData.indices[iter++] = (i + 2) * 32;
-
-			meshData.indices[iter++] = i * 32 + 1;
-			meshData.indices[iter++] = (i + 1) * 32 + 1;
-			meshData.indices[iter++] = (i + 2) * 32;
-		}
-
-		// Bottom
-		meshData.indices[5757] = 961;
-		meshData.indices[5758] = 960;
-		meshData.indices[5759] = 929;
 
 		Handle<Mesh> sphere = loadMeshFromData(meshData);
 		if(sphere.isLoaded())
 			m_resourceCache.addMesh("__vul_sphere", sphere);
 	}
 
-	bool ResourceLoader::loadCubeMapSide(const std::string& path, Handle<Texture> texture, uint32_t side)
+	void ResourceLoader::createQuad()
 	{
-		// TODO: Cache cubemap sides
-		// TODO: Create more general DDS loader to reduce redundant code
-		uint8_t header[124];
+		MeshData meshData(4, 6, true, true, true);
 
-		std::ifstream f(path, std::ifstream::binary);
+		meshData.vertices[0] = -1.f;
+		meshData.vertices[1] = -1.f;
+		meshData.vertices[2] = 0.f;
+
+		meshData.vertices[3] = 1.f;
+		meshData.vertices[4] = -1.f;
+		meshData.vertices[5] = 0.f;
+
+		meshData.vertices[6] = -1.f;
+		meshData.vertices[7] = 1.f;
+		meshData.vertices[8] = 0.f;
+
+		meshData.vertices[9] = 1.f;
+		meshData.vertices[10] = 1.f;
+		meshData.vertices[11] = 0.f;
+
+		meshData.indices[0] = 0;
+		meshData.indices[1] = 1;
+		meshData.indices[2] = 2;
+
+		meshData.indices[3] = 2;
+		meshData.indices[4] = 1;
+		meshData.indices[5] = 3;
+
+		meshData.UVCoordinates[0] = 0.f;
+		meshData.UVCoordinates[1] = 0.f;
+
+		meshData.UVCoordinates[2] = 1.f;
+		meshData.UVCoordinates[3] = 0.f;
+
+		meshData.UVCoordinates[4] = 0.f;
+		meshData.UVCoordinates[5] = 1.f;
+
+		meshData.UVCoordinates[6] = 1.f;
+		meshData.UVCoordinates[7] = 1.f;
+
+		// These are not expected to be used, but included for sake of completeness
+		for(uint32_t i = 0; i < meshData.vertexCount * 3; i++)
+		{
+			meshData.normals[i] = ((i + 1) % 3 == 0) ? 1.f : 0.f; // <0.f, 0.f, 1.f>
+			meshData.tangents[i] = (i % 3 == 0) ? 1.f : 0.f; // <1.f, 0.f, 0.f>
+			meshData.bitangents[i] = ((i + 2) % 3 == 0)? 1.f : 0.f; // <0.f, 1.f, 0.f>
+		}
+
+		Handle<Mesh> quad = loadMeshFromData(meshData);
+		if(quad.isLoaded())
+			m_resourceCache.addMesh("__vul_quad", quad);
+	}
+
+	void ResourceLoader::createIBLLUT()
+	{
+		RenderTarget envLUT(512, 512);
+		CustomRenderer cr(*this);
+		cr.setShader(loadShaderFromFile("data/envlut.vs", "data/envlut.fs"));
+		cr.render(&envLUT);
+		envLUT.cacheTexture("__vul_IBLLUT", m_resourceCache);
+	}
+
+	std::vector<uint8_t> ResourceLoader::readFile(const std::string& path)
+	{
+		// I chose to represent this data with uint8_t as
+		// most file formats are expected to be binary
+		std::ifstream f(path, std::ios::binary);
 		if(!f)
 		{
-			Logger::log("vul::ResourceLoader::loadTextureFromFile: Unable to open file '%s'", path.c_str());
-			return false;
+			Logger::log("vul::ResourceLoader::readFile: Unable to open file '%s'", path.c_str());
+			return std::vector<uint8_t>();
 		}
 
-		char magic[4];
-		f.read(magic, 4);
-		if(strncmp(magic, "DDS ", 4))
+		// Read in chunks to reduce number of reallocations
+		// and ensure the correct amount of data is read.
+		// Seeking to the end of the file then using ftell()
+		// is not guaranteed to be correct in binary mode
+		// (and doesn't count certain characters in text mode)
+		std::vector<uint8_t> data;
+		const uint32_t chunkSize = 4096; // Pagefiles are generally 4K
+		uint8_t buffer[chunkSize];
+
+		while(!f.eof())
 		{
-			Logger::log("vul::ResourceLoader::loadTextureFromFile: Invalid file format for file '%s' (must be DDS)", path.c_str());
-			f.close();
-			return false;
+			f.read(reinterpret_cast<char*>(buffer), chunkSize);
+
+			std::streamsize bytesRead = f.gcount();
+			if(bytesRead < chunkSize)
+			{
+				data.insert(data.end(), buffer, buffer + bytesRead);
+				break;
+			}
+
+			data.insert(data.end(), buffer, buffer + chunkSize);
 		}
-
-		f.read((char*)header, 124);
-		uint32_t height = *(uint32_t*)&header[8];
-		uint32_t width = *(uint32_t*)&header[12];
-		uint32_t linearSize = *(uint32_t*)&header[16];
-		uint32_t mipmapCount = *(uint32_t*)&header[24];
-		uint32_t fourCC = *(uint32_t*)&header[80];
-
-		if(mipmapCount == 0) mipmapCount = 1;
-
-		uint32_t len = mipmapCount > 1 ? linearSize * 2 : linearSize;
-		uint8_t* buffer = new uint8_t[len];
-		f.read((char*)buffer, len);
 		f.close();
 
-		uint32_t format = 0;
-		switch(fourCC)
+		data.push_back(0); // Add terminating character in case used as C-string
+
+		return data;
+	}
+
+	bool ResourceLoader::loadCubeMapSide(const std::string& path, Handle<Texture> texture, uint32_t side, uint32_t* ptrWidth)
+	{
+		// Read file
+		std::vector<uint8_t> fileData = readFile(path);
+		if(fileData.size() == 0)
 		{
-		case FOURCC_DXT1: format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT; break;
-		case FOURCC_DXT3: format = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT; break;
-		case FOURCC_DXT5: format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT; break;
-		default:
-		{
-			Logger::log("vul::ResourceLoader::loadTextureFromFile: DDS file '%s' is not DXT1, DXT3, or DXT5", path.c_str());
-			delete[] buffer;
+			Logger::log("vul::ResourceLoader::loadCubeMapSide: Returned empty '%s'", path.c_str());
 			return false;
-		} break;
 		}
 
-		uint32_t blockSize = (fourCC == FOURCC_DXT1 ? 8 : 16);
-		uint32_t offset = 0;
-
-		for(uint32_t level = 0; level < mipmapCount && (width || height); level++)
+		// Parse data
+		const uint8_t* buffer = reinterpret_cast<const uint8_t*>(fileData.data());
+		if(!m_imageParser.parse(buffer, fileData.size()))
 		{
-			uint32_t size = ((width + 3) / 4) * ((height + 3) / 4) * blockSize;
-			glCompressedTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + side, level, format, width, height, 0, size, &buffer[offset]);
-			offset += size;
+			Logger::log("vul::ResourceLoader::loadCubeMapSide: Unable to load '%s'", path.c_str());
+			return false;
+		}
+
+		// Query for image information
+		ImageInfo info = m_imageParser.getImageInfo();
+
+		// Pass width if requested
+		if(ptrWidth) *ptrWidth = info.width;
+
+		if(info.numMipMaps > 1)
+		{
+			// Assumes number of mipmaps is same for all sides
+			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LEVEL, info.numMipMaps - 1);
+		}
+
+		// Upload all mipmaps
+		uint32_t width = info.width;
+		uint32_t height = info.height;
+		for(uint32_t i = 0; i < info.numMipMaps; i++)
+		{
+			uint32_t size = m_imageParser.getSize(i);
+			if(info.s3tc)
+			{
+				uint8_t* data = new uint8_t[size];
+				m_imageParser.getIntImage(data, i);
+				glCompressedTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + side, i, info.internalFormat, width, height, 0, size, data);
+				delete[] data;
+			}
+			else
+			{
+				// Since only DDS and HDR are supported, uncompressed images are assumed to be floating point textures
+				float* data = new float[size];
+				m_imageParser.getFloatImage(data, i);
+				glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + side, i, info.internalFormat, width, height, 0, info.format, info.channelType, data);
+				delete[] data;
+			}
 			width /= 2;
 			height /= 2;
 		}
-
-		delete[] buffer;
+		texture.setLoaded();
 
 		return true;
+	}
+
+	void ResourceLoader::prefilterCubeMap(Handle<Texture>& texture, uint32_t width)
+	{
+		// Prefilter is for fast real time IBL
+		CustomRenderer cr(*this);
+		cr.setShader(loadShaderFromFile("data/prefilter.vs", "data/prefilter.fs"));
+		cr.setCubeMap(texture, 0);
+
+		uint32_t numMipMaps = std::log2(width);
+
+		// Mipmaps with lower resolution will get prefiltered with higher roughnesses
+		for(uint32_t i = 1; i <= numMipMaps; i++)
+		{
+			width >>= 1;
+			RenderTarget prefilter(width, width, 0);
+			for(int j = 0; j < 6; j++)
+				prefilter.addTarget(texture, 0x8515 + j, i);
+			float roughness = (float)i / (float)numMipMaps;
+			cr.copyUniformBufferObject(&roughness, sizeof(float));
+			cr.render(&prefilter);
+		}
 	}
 }

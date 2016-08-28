@@ -2,7 +2,6 @@
 #include "include/ForwardRenderer.h"
 #include "include/Scene.h"
 #include "include/Camera.h"
-#include "InternalResourceLoader.h"
 #include "Logger.h"
 #include <gl/glew.h>
 
@@ -12,13 +11,6 @@ namespace vul
 	{
 		m_error = true;
 		Logger::log("vul::ForwardRenderer::ForwardRenderer: Forward rendering not supported at this time");
-
-		m_shader = InternalResourceLoader::loadMaterialFromFile("data/forwardPBR.vs", "data/forwardPBR.fs");
-		if(!m_shader.isLoaded())
-		{
-			Logger::log("vul::ForwardRenderer::ForwardRenderer: Unable to open PBR shader");
-			m_error = true;
-		}
 	}
 
 	ForwardRenderer::~ForwardRenderer()

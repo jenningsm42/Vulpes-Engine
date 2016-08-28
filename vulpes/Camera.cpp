@@ -6,8 +6,8 @@
 
 namespace vul
 {
-	Camera::Camera(Engine& engine, const glm::vec3& position, const glm::vec3& up,
-		const glm::vec3& target, float near, float far, float fieldOfView)
+	Camera::Camera(Engine& engine, const glm::vec3& position, const glm::vec3& target,
+		const glm::vec3& up, float near, float far, float fieldOfView)
 		: m_position(position), m_up(up), m_target(target), m_near(near),
 		m_far(far), m_fieldOfView(fieldOfView)
 	{

@@ -36,7 +36,7 @@ namespace vul
 
 		const glm::mat4& getTransformationMatrix() const;
 		const glm::mat3& getNormalMatrix() const;
-
+		
 	private:
 		glm::vec3 m_position;
 		glm::vec3 m_rotation; // Angles in radians

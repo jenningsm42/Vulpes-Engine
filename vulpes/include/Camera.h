@@ -12,8 +12,8 @@ namespace vul
 	{
 	public:
 		Camera(Engine& engine, const glm::vec3& position = glm::vec3(0, 0, 1),
-			const glm::vec3& up = glm::vec3(0, 1, 0),
 			const glm::vec3& target = glm::vec3(0, 0, 0),
+			const glm::vec3& up = glm::vec3(0, 1, 0),
 			float near = .1f, float far = 500.f, float fieldOfView = 1.047196667f);
 		~Camera();
 

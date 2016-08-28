@@ -2,7 +2,7 @@
 #define _VUL_FORWARDRENDERER_H
 #include "Export.h"
 #include "Renderer.h"
-#include "Material.h"
+#include "Shader.h"
 #include "Handle.h"
 
 namespace vul
@@ -18,7 +18,7 @@ namespace vul
 		void setWireframeMode(bool) override;
 
 	private:
-		Handle<Material> m_shader;
+		Handle<Shader> m_shader;
 	};
 }
 

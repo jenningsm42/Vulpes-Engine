@@ -3,7 +3,7 @@
 
 namespace vul
 {
-	PointLight::PointLight(uint32_t id) : m_intensity(10.f),
+	PointLight::PointLight(uint32_t id) : m_brightness(10.f), m_radius(10.f),
 		m_color(glm::vec3(1.f, 1.f, 1.f)), SceneObject(id, SceneObjectType::PointLight)
 	{
 	}
@@ -11,7 +11,8 @@ namespace vul
 	PointLight::PointLight(const PointLight& other) : SceneObject(other)
 	{
 		m_color = other.m_color;
-		m_intensity = other.m_intensity;
+		m_brightness = other.m_brightness;
+		m_radius = other.m_radius;
 	}
 
 	void PointLight::setColor(const glm::vec3& color)
@@ -19,9 +20,14 @@ namespace vul
 		m_color = color;
 	}
 
-	void PointLight::setIntensity(float intensity)
+	void PointLight::setBrightness(float intensity)
 	{
-		m_intensity = intensity;
+		m_brightness = intensity;
+	}
+
+	void PointLight::setRadius(float radius)
+	{
+		m_radius = radius;
 	}
 
 	const glm::vec3& PointLight::getColor()
@@ -29,8 +35,13 @@ namespace vul
 		return m_color;
 	}
 
-	float PointLight::getIntensity()
+	float PointLight::getBrightness()
 	{
-		return m_intensity;
+		return m_brightness;
+	}
+
+	float PointLight::getRadius()
+	{
+		return m_radius;
 	}
 }

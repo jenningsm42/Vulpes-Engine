@@ -3,27 +3,33 @@
 #include "include/Scene.h"
 #include "include/Camera.h"
 #include "include/Mesh.h"
-#include "InternalResourceLoader.h"
 #include "Logger.h"
 #include <gl/glew.h>
 
 namespace vul
 {
-	DeferredRenderer::DeferredRenderer() : m_gbuffer(4), m_wireframe(false)
+	DeferredRenderer::DeferredRenderer(ResourceLoader& rl) : m_gbuffer(4), m_wireframe(false)
 	{
-		m_geometryShader = InternalResourceLoader::loadMaterialFromFile("data/geometryPass.vs", "data/geometryPass.fs");
+		m_geometryShader = rl.loadShaderFromFile("data/geometryPass.vs", "data/geometryPass.fs");
 		if(!m_geometryShader.isLoaded())
 		{
 			Logger::log("vul::DeferredRenderer::DeferredRenderer: Unable to open geometry shader");
 			m_error = true;
 		}
 
-		m_lightShader = InternalResourceLoader::loadMaterialFromFile("data/lightPass.vs", "data/lightPass.fs");
+		m_lightShader = rl.loadShaderFromFile("data/lightPass.vs", "data/lightPass.fs");
 		if(!m_lightShader.isLoaded())
 		{
 			Logger::log("vul::DeferredRenderer::DeferredRenderer: Unable to open light shader");
 			m_error = true;
 		}
+
+		m_defaultColorMap = rl.loadTextureFromColor(1.f, 1.f, 1.f);
+		m_defaultNormalMap = rl.loadTextureFromColor(.5f, .5f, 1.f);
+		m_defaultRoughnessMap = rl.loadTextureFromColor(.5f, 0.f, 0.f);
+		m_defaultMetalMap = rl.loadTextureFromColor(0.f, 0.f, 0.f);
+
+		m_environmentLUT = rl.loadTextureFromFile("__vul_IBLLUT");
 
 		for(int i = 0; i < 4; i++) m_color[i] = 1.f;
 	}
@@ -32,19 +38,29 @@ namespace vul
 	{
 	}
 
-	void DeferredRenderer::setActiveCamera(Camera& camera)
+	void DeferredRenderer::setCamera(Camera& camera)
 	{
 		m_camera = &camera;
 		createQuad();
 		m_gbuffer.initialize(camera.getWidth(), camera.getHeight());
 	}
 
-	void DeferredRenderer::setActiveEnvironment(Handle<Texture> environmentMap)
+	void DeferredRenderer::setActiveEnvironment(Handle<Texture>& environmentMap)
 	{
 		m_environmentMap = environmentMap;
 	}
 
+	void DeferredRenderer::setActiveDiffuseEnvironment(Handle<Texture>& diffuseEnvironmentMap)
+	{
+		m_diffuseEnvironmentMap = diffuseEnvironmentMap;
+	}
+
 	void DeferredRenderer::render()
+	{
+		render(nullptr);
+	}
+
+	void DeferredRenderer::render(RenderTarget* rt)
 	{
 		if(m_error) return;
 
@@ -77,7 +93,7 @@ namespace vul
 		}
 
 		geometryPass();
-		lightPass();
+		lightPass(rt);
 	}
 
 	void DeferredRenderer::setWireframeMode(bool wireframe)
@@ -109,6 +125,9 @@ namespace vul
 
 		glUseProgram(m_geometryShader->programHandle);
 
+		// TODO: use map or similar for better readability of uniform locations
+		//		 and stop using layout (location) on uniforms -- just look up the
+		//		 names when the shader is specified and cache locations
 		// Global transformations
 		glUniformMatrix4fv(static_cast<GLint>(DeferredGeometryUniformLocations::ViewMatrix), 1, GL_FALSE, &m_camera->getViewMatrix()[0][0]);
 		glUniformMatrix4fv(static_cast<GLint>(DeferredGeometryUniformLocations::ProjectionMatrix), 1, GL_FALSE, &m_camera->getProjMatrix()[0][0]);
@@ -117,12 +136,14 @@ namespace vul
 		for(uint32_t i = 0; i < m_scene->getSceneObjectCount(SceneObjectType::Renderable); i++)
 		{
 			Handle<RenderableObject> currentObject = m_scene->getRenderableObjectByIndex(i);
-			if(!currentObject->getVisible()) continue;
-
 			Handle<Mesh> mesh = currentObject->getMesh();
+			if(!currentObject->isVisible() || !mesh.isLoaded()) continue;
+
+			// Retrieve maps, defaults will be used if these aren't loaded
 			Handle<Texture> colorMap = currentObject->getColorMap();
 			Handle<Texture> normalMap = currentObject->getNormalMap();
 			Handle<Texture> roughnessMap = currentObject->getRoughnessMap();
+			Handle<Texture> metalMap = currentObject->getMetalMap();
 			tmpPolycount += mesh->ic / 3;
 
 			// Local transformations
@@ -130,35 +151,35 @@ namespace vul
 			glm::mat3 normalMatrix = currentObject->getTransformation().getNormalMatrix();
 
 			glUniformMatrix4fv(static_cast<GLint>(DeferredGeometryUniformLocations::ModelMatrix), 1, GL_FALSE, &modelMatrix[0][0]);
+			glUniformMatrix3fv(static_cast<GLint>(DeferredGeometryUniformLocations::NormalMatrix), 1, GL_FALSE, &normalMatrix[0][0]);
 
 			// Textures
-			if(colorMap->textureHandle != 0)
-			{
-				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, colorMap->textureHandle);
+			// Color map
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, colorMap.isLoaded()? colorMap->textureHandle
+															: m_defaultColorMap->textureHandle);
+			glUniform1i(static_cast<GLint>(DeferredGeometryUniformLocations::ColorMap), 0);
 
-				glUniform1i(static_cast<GLint>(DeferredGeometryUniformLocations::ColorMap), 0);
-			}
+			// Normal map
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, normalMap.isLoaded()? normalMap->textureHandle
+																: m_defaultNormalMap->textureHandle);
+			glUniform1i(static_cast<GLint>(DeferredGeometryUniformLocations::NormalMap), 1);
+			
+			// Roughness map
+			glActiveTexture(GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_2D, roughnessMap.isLoaded()? roughnessMap->textureHandle
+																: m_defaultRoughnessMap->textureHandle);
+			glUniform1i(static_cast<GLint>(DeferredGeometryUniformLocations::RoughnessMap), 2);
 
-			if(normalMap->textureHandle != 0)
-			{
-				glActiveTexture(GL_TEXTURE1);
-				glBindTexture(GL_TEXTURE_2D, normalMap->textureHandle);
-
-				glUniform1i(static_cast<GLint>(DeferredGeometryUniformLocations::NormalMap), 1);
-			}
-
-			if(roughnessMap->textureHandle != 0)
-			{
-				glActiveTexture(GL_TEXTURE2);
-				glBindTexture(GL_TEXTURE_2D, roughnessMap->textureHandle);
-
-				glUniform1i(static_cast<GLint>(DeferredGeometryUniformLocations::RoughnessMap), 2);
-			}
+			// Roughness map
+			glActiveTexture(GL_TEXTURE3);
+			glBindTexture(GL_TEXTURE_2D, metalMap.isLoaded()? metalMap->textureHandle
+				: m_defaultMetalMap->textureHandle);
+			glUniform1i(static_cast<GLint>(DeferredGeometryUniformLocations::MetalMap), 3);
 
 			// Extra
 			glUniform1f(static_cast<GLint>(DeferredGeometryUniformLocations::Near), m_camera->getNear());
-			glUniform1f(static_cast<GLint>(DeferredGeometryUniformLocations::ReflectionCoefficient), currentObject->getReflectionCoefficient());
 
 			// Meshes
 			glBindVertexArray(mesh->vao);
@@ -174,7 +195,7 @@ namespace vul
 		m_polycount = tmpPolycount;
 	}
 
-	void DeferredRenderer::lightPass()
+	void DeferredRenderer::lightPass(RenderTarget* rt)
 	{
 		// The g-buffer has been populated with data, now it must be processed into
 		// the final scene, then rendered on the screen
@@ -208,6 +229,16 @@ namespace vul
 		glBindTexture(GL_TEXTURE_CUBE_MAP, m_environmentMap->textureHandle);
 		glUniform1i(static_cast<GLint>(DeferredLightUniformLocations::EnvironmentMap), 4);
 
+		glActiveTexture(GL_TEXTURE5);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, m_diffuseEnvironmentMap->textureHandle);
+		glUniform1i(static_cast<GLint>(DeferredLightUniformLocations::DiffuseEnvironmentMap), 5);
+
+		glUniform1f(static_cast<GLint>(DeferredLightUniformLocations::EnvironmentMipMaps), 9); // TODO: add way to query image information from Handle<Texture>&
+
+		glActiveTexture(GL_TEXTURE6);
+		glBindTexture(GL_TEXTURE_2D, m_environmentLUT->textureHandle);
+		glUniform1i(static_cast<GLint>(DeferredLightUniformLocations::EnvironmentLUT), 6);
+
 		// Lights
 		for(uint32_t i = 0; i < m_scene->getSceneObjectCount(SceneObjectType::PointLight); i++)
 		{
@@ -215,21 +246,26 @@ namespace vul
 			glm::vec4 lightPosViewSpace = m_camera->getViewMatrix() * glm::vec4(hLight->getTransformation().getPosition(), 1.f);
 			glm::vec3 lightPosTransformed = glm::vec3(lightPosViewSpace) / lightPosViewSpace.w;
 
-			glUniform3fv(static_cast<GLint>(DeferredLightUniformLocations::LightArray) + i * 3,
+			glUniform3fv(static_cast<GLint>(DeferredLightUniformLocations::LightArray) + i * 4,
 				1, &lightPosTransformed[0]);
-			glUniform3fv(static_cast<GLint>(DeferredLightUniformLocations::LightArray) + i * 3 + 1,
+			glUniform3fv(static_cast<GLint>(DeferredLightUniformLocations::LightArray) + i * 4 + 1,
 				1, &hLight->getColor()[0]);
-			glUniform1f(static_cast<GLint>(DeferredLightUniformLocations::LightArray) + i * 3 + 2,
-				hLight->getIntensity());
+			glUniform1f(static_cast<GLint>(DeferredLightUniformLocations::LightArray) + i * 4 + 2,
+				hLight->getBrightness());
+			glUniform1f(static_cast<GLint>(DeferredLightUniformLocations::LightArray) + i * 4 + 3,
+				hLight->getRadius());
 		}
 
+		if(rt) rt->beginWrite();
 		glBindVertexArray(m_quadMesh.vao);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_quadMesh.ib);
 		glDrawElements(GL_TRIANGLES, m_quadMesh.ic, GL_UNSIGNED_INT, nullptr);
+		if(rt) rt->endWrite();
 	}
 
 	void DeferredRenderer::createQuad()
 	{
+		// ResourceLoader not used as this quad has frustum rays to reconstruct positions
 		float vertices[] = {-1.f, -1.f, 0.f,
 							1.f, -1.f, 0.f,
 							-1.f, 1.f, 0.f,

@@ -43,6 +43,12 @@
     <Filter Include="Source Files\Graphics\Renderers">
       <UniqueIdentifier>{fa352b35-1dcc-4f14-8606-e31325098271}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Graphics\Resources\Format Parsers">
+      <UniqueIdentifier>{daf40eba-2946-4123-bc64-8b1a72a3dc3a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Graphics\Resources\Format Parsers">
+      <UniqueIdentifier>{bb7aa399-4233-43a9-9a30-fb7f089c4839}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Vulpes.h">
@@ -84,19 +90,10 @@
     <ClInclude Include="include\FPSCamera.h">
       <Filter>Header Files\Graphics\Scene</Filter>
     </ClInclude>
-    <ClInclude Include="include\GBuffer.h">
-      <Filter>Header Files\Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="InternalResourceLoader.h">
-      <Filter>Header Files\Graphics\Resources</Filter>
-    </ClInclude>
     <ClInclude Include="include\Mesh.h">
       <Filter>Header Files\Graphics\Resources</Filter>
     </ClInclude>
     <ClInclude Include="include\Texture.h">
-      <Filter>Header Files\Graphics\Resources</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Material.h">
       <Filter>Header Files\Graphics\Resources</Filter>
     </ClInclude>
     <ClInclude Include="include\Scene.h">
@@ -119,6 +116,33 @@
     </ClInclude>
     <ClInclude Include="include\PointLight.h">
       <Filter>Header Files\Graphics\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="include\DDSParser.h">
+      <Filter>Header Files\Graphics\Resources\Format Parsers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\HDRParser.h">
+      <Filter>Header Files\Graphics\Resources\Format Parsers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\VEMParser.h">
+      <Filter>Header Files\Graphics\Resources\Format Parsers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\MeshData.h">
+      <Filter>Header Files\Graphics\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Shader.h">
+      <Filter>Header Files\Graphics\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="include\RenderTarget.h">
+      <Filter>Header Files\Graphics\Renderers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\GBuffer.h">
+      <Filter>Header Files\Graphics\Renderers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\ImageParser.h">
+      <Filter>Header Files\Graphics\Resources\Format Parsers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\CustomRenderer.h">
+      <Filter>Header Files\Graphics\Renderers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -152,12 +176,6 @@
     <ClCompile Include="Transformation.cpp">
       <Filter>Source Files\Math</Filter>
     </ClCompile>
-    <ClCompile Include="GBuffer.cpp">
-      <Filter>Source Files\Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="InternalResourceLoader.cpp">
-      <Filter>Source Files\Graphics\Resources</Filter>
-    </ClCompile>
     <ClCompile Include="Scene.cpp">
       <Filter>Source Files\Graphics\Scene</Filter>
     </ClCompile>
@@ -176,5 +194,29 @@
     <ClCompile Include="PointLight.cpp">
       <Filter>Source Files\Graphics\Scene</Filter>
     </ClCompile>
+    <ClCompile Include="DDSParser.cpp">
+      <Filter>Source Files\Graphics\Resources\Format Parsers</Filter>
+    </ClCompile>
+    <ClCompile Include="HDRParser.cpp">
+      <Filter>Source Files\Graphics\Resources\Format Parsers</Filter>
+    </ClCompile>
+    <ClCompile Include="VEMParser.cpp">
+      <Filter>Source Files\Graphics\Resources\Format Parsers</Filter>
+    </ClCompile>
+    <ClCompile Include="GBuffer.cpp">
+      <Filter>Source Files\Graphics\Renderers</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderTarget.cpp">
+      <Filter>Source Files\Graphics\Renderers</Filter>
+    </ClCompile>
+    <ClCompile Include="ImageParser.cpp">
+      <Filter>Source Files\Graphics\Resources\Format Parsers</Filter>
+    </ClCompile>
+    <ClCompile Include="CustomRenderer.cpp">
+      <Filter>Source Files\Graphics\Renderers</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ClassDiagram.cd" />
   </ItemGroup>
 </Project>

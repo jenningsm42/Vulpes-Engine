@@ -3,7 +3,8 @@
 layout (location=0) uniform mat4 viewMat;
 layout (location=4) uniform mat4 projMat;
 layout (location=8) uniform mat4 modelMat;
-layout (location=12) uniform float near;
+layout (location=12) uniform mat3 normalMat;
+layout (location=15) uniform float near;
 
 layout (location=0) in vec3 inPosition;
 layout (location=1) in vec3 inNormal;
@@ -26,8 +27,8 @@ void main()
 	gl_Position = calculatedPosition;
 	passDepthZ = calculatedPosition.z + near;
 	passDepthW = calculatedPosition.w + near;
-	passNormal = viewMat3 * inNormal;
-	passUVCoords = inUVCoords;
+	passNormal = viewMat3 * normalMat * inNormal;
 	passTangent = viewMat3 * inTangent;
 	passBitangent = viewMat3 * inBitangent;
+	passUVCoords = inUVCoords;
 }

@@ -14,7 +14,7 @@ namespace vul
 		virtual ~Renderer() {}
 
 		virtual void setScene(Scene&);
-		virtual void setActiveCamera(Camera&);
+		virtual void setCamera(Camera&);
 
 		virtual void render() = 0;
 

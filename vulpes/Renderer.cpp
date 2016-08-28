@@ -12,7 +12,7 @@ namespace vul
 		m_scene = &scene;
 	}
 
-	void Renderer::setActiveCamera(Camera& camera)
+	void Renderer::setCamera(Camera& camera)
 	{
 		m_camera = &camera;
 	}

@@ -93,6 +93,7 @@ namespace vul
 		}
 
 		glEnable(GL_CULL_FACE);
+		glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 		glEnable(GL_DEPTH_TEST);
 		glClearDepth(1.f);
 		glDepthFunc(GL_LESS);

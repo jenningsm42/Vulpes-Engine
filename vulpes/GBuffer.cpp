@@ -5,7 +5,7 @@
 
 namespace vul
 {
-	GBuffer::GBuffer(uint32_t textureCount) : m_textureCount(textureCount)
+	GBuffer::GBuffer(uint32_t textureCount) : m_textureCount(textureCount), m_loaded(false)
 	{
 	}
 
@@ -15,6 +15,8 @@ namespace vul
 
 	bool GBuffer::initialize(uint32_t windowWidth, uint32_t windowHeight, uint32_t scalingFactor)
 	{
+		if(m_loaded) release();
+
 		m_windowWidth = windowWidth;
 		m_windowHeight = windowHeight;
 		m_scalingFactor = scalingFactor;
@@ -30,7 +32,7 @@ namespace vul
 		for(uint32_t i = 0; i < m_textureCount; i++)
 		{
 			glBindTexture(GL_TEXTURE_2D, m_textures[i]);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, windowWidth * scalingFactor, windowHeight * scalingFactor, 0, GL_RGBA, GL_FLOAT, nullptr);
+			glTexImage2D(GL_TEXTURE_2D, 0, (i == 1)? GL_RG16F : GL_RGBA8, windowWidth * scalingFactor, windowHeight * scalingFactor, 0, (i == 1)? GL_RG : GL_RGBA, (i == 1)? GL_HALF_FLOAT : GL_BYTE, nullptr);
 			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 			glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, m_textures[i], 0);
@@ -57,7 +59,17 @@ namespace vul
 		// Restore default FBO
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
+		m_loaded = true;
 		return true;
+	}
+
+	void GBuffer::release()
+	{
+		glDeleteTextures(1, &m_depthTexture);
+		glDeleteTextures(m_textureCount, m_textures);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glDeleteFramebuffers(1, &m_fbo);
+		m_loaded = false;
 	}
 
 	void GBuffer::bindWrite()

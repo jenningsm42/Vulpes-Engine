@@ -1,50 +1,19 @@
 #ifndef _VUL_RESOURCELOADER_H
 #define _VUL_RESOURCELOADER_H
 #include <string>
-#include "Export.h"
+#include <vector>
 #include <cstdint>
+#include "Export.h"
 #include "ResourceCache.h"
 #include "Mesh.h"
 #include "Texture.h"
-#include "Material.h"
+#include "Shader.h"
+#include "VEMParser.h"
+#include "ImageParser.h"
+#include "MeshData.h"
 
 namespace vul
 {
-	struct MeshData
-	{
-		MeshData(uint32_t vertexCount, uint32_t indexCount,
-			bool hasNormals = false, bool hasTB = false,
-			bool hasUVCoordinates = false) : vertexCount(vertexCount),
-			indexCount(indexCount)
-		{
-			vertices = new float[vertexCount * 3];
-			indices = new uint32_t[indexCount];
-			normals = hasNormals ? new float[vertexCount * 3] : nullptr;
-			tangents = hasTB ? new float[vertexCount * 3] : nullptr;
-			bitangents = hasTB ? new float[vertexCount * 3] : nullptr;
-			UVCoordinates = hasUVCoordinates ? new float[vertexCount * 2] : nullptr;
-		}
-
-		~MeshData()
-		{
-			if(vertices) delete[] vertices;
-			if(indices) delete[] indices;
-			if(normals) delete[] normals;
-			if(UVCoordinates) delete[] UVCoordinates;
-			if(tangents) delete[] tangents;
-			if(bitangents) delete[] bitangents;
-		}
-
-		float* vertices;
-		uint32_t* indices;
-		float* normals;
-		float* tangents;
-		float* bitangents;
-		float* UVCoordinates;
-		uint32_t vertexCount;
-		uint32_t indexCount;
-	};
-
 	class VEAPI ResourceLoader
 	{
 	public:
@@ -62,19 +31,37 @@ namespace vul
 									const std::string& topPath,
 									const std::string& bottomPath,
 									const std::string& leftPath,
-									const std::string& rightPath);
+									const std::string& rightPath,
+									bool prefilter = false);
+		Handle<Texture> loadCubeMapCross(const std::string& path, bool prefilter = false);
+
+		Handle<Shader> loadShaderFromFile(const std::string& vsPath, const std::string& fsPath);
+		Handle<Shader> loadShaderFromText(const uint8_t* vsContent, const uint8_t* fsContent);
 
 		Handle<Mesh> getPlane();
 		Handle<Mesh> getSphere();
+		Handle<Mesh> getQuad();
+
+		Handle<ResourceCache> getResourceCache();
 
 	private:
 		ResourceCache m_resourceCache;
+		VEMParser m_parserVEM;
+		ImageParser m_imageParser;
+
+		bool validateShader(uint32_t shaderHandle);
+		bool validateProgram(uint32_t programHandle);
 
 		void createPlane();
 		void createSphere();
+		void createQuad();
+		void createIBLLUT(); // image-based light look up texture
+
+		std::vector<uint8_t> readFile(const std::string& path); // Return empty string if file not found
 
 		bool loadCubeMapSide(const std::string& path, Handle<Texture> texture,
-			uint32_t side);
+			uint32_t side, uint32_t* width = nullptr);
+		void prefilterCubeMap(Handle<Texture>&, uint32_t width);
 	};
 }
 

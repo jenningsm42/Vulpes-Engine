@@ -12,6 +12,7 @@ namespace vul
 		~GBuffer();
 
 		bool initialize(uint32_t windowWidth, uint32_t windowHeight, uint32_t scalingFactor = 1);
+		void release();
 
 		void bindWrite();
 		void endWrite();
@@ -29,6 +30,7 @@ namespace vul
 		uint32_t m_depthTexture;
 		uint32_t m_windowWidth, m_windowHeight;
 		uint32_t m_scalingFactor;
+		bool m_loaded;
 	};
 }
 

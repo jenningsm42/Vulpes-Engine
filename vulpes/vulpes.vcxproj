@@ -79,7 +79,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="include\Camera.h" />
-    <ClInclude Include="include\Material.h" />
+    <ClInclude Include="include\CustomRenderer.h" />
+    <ClInclude Include="include\DDSParser.h" />
+    <ClInclude Include="include\HDRParser.h" />
+    <ClInclude Include="include\ImageParser.h" />
+    <ClInclude Include="include\RenderTarget.h" />
+    <ClInclude Include="include\Shader.h" />
+    <ClInclude Include="include\MeshData.h" />
     <ClInclude Include="include\PointLight.h" />
     <ClInclude Include="include\RenderableObject.h" />
     <ClInclude Include="include\DeferredRenderer.h" />
@@ -98,31 +104,39 @@
     <ClInclude Include="include\SceneObject.h" />
     <ClInclude Include="include\Texture.h" />
     <ClInclude Include="include\Transformation.h" />
+    <ClInclude Include="include\VEMParser.h" />
     <ClInclude Include="include\Vulpes.h" />
     <ClInclude Include="include\Window.h" />
     <ClInclude Include="include\WindowCreationParameters.h" />
-    <ClInclude Include="InternalResourceLoader.h" />
     <ClInclude Include="Logger.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="CustomRenderer.cpp" />
+    <ClCompile Include="DDSParser.cpp" />
+    <ClCompile Include="HDRParser.cpp" />
+    <ClCompile Include="ImageParser.cpp" />
     <ClCompile Include="PointLight.cpp" />
     <ClCompile Include="RenderableObject.cpp" />
     <ClCompile Include="DeferredRenderer.cpp" />
     <ClCompile Include="Renderer.cpp" />
+    <ClCompile Include="RenderTarget.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Engine.cpp" />
     <ClCompile Include="FPSCamera.cpp" />
     <ClCompile Include="GBuffer.cpp" />
     <ClCompile Include="InputHandler.cpp" />
-    <ClCompile Include="InternalResourceLoader.cpp" />
     <ClCompile Include="Logger.cpp" />
     <ClCompile Include="ForwardRenderer.cpp" />
     <ClCompile Include="ResourceCache.cpp" />
     <ClCompile Include="ResourceLoader.cpp" />
     <ClCompile Include="SceneObject.cpp" />
     <ClCompile Include="Transformation.cpp" />
+    <ClCompile Include="VEMParser.cpp" />
     <ClCompile Include="Window.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ClassDiagram.cd" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

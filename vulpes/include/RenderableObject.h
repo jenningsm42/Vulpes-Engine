@@ -8,6 +8,16 @@
 
 namespace vul
 {
+	enum struct RenderableObjectFlags
+	{
+		Visible = 1,
+		MeshAttached = 2,
+		ColorMapAttached = 4,
+		NormalMapAttached = 8,
+		RoughnessMapAttached = 16,
+		MetalMapAttached = 32
+	};
+
 	class VEAPI RenderableObject : public SceneObject
 	{
 	public:
@@ -18,23 +28,23 @@ namespace vul
 		void attachColorMap(const Handle<Texture>&);
 		void attachNormalMap(const Handle<Texture>&);
 		void attachRoughnessMap(const Handle<Texture>&);
-		void setRefractiveIndex(float n);
+		void attachMetalMap(const Handle<Texture>&);
 		void setVisible(bool visible);
 
 		Handle<Mesh> getMesh();
 		Handle<Texture> getColorMap();
 		Handle<Texture> getNormalMap();
 		Handle<Texture> getRoughnessMap();
-		float getReflectionCoefficient();
-		bool getVisible();
+		Handle<Texture> getMetalMap();
+		bool isVisible();
 
 	private:
 		Mesh m_mesh;
 		Texture m_colorMap; // Analogous with albedo map
 		Texture m_normalMap;
 		Texture m_roughnessMap;
-		float m_reflectionCoefficient; // f0 -- for fresnel term (can be mapped)
-		bool m_visible;
+		Texture m_metalMap;
+		uint8_t m_flags; // Ensure space isn't wasted with many bools
 	};
 }
 

@@ -7,7 +7,7 @@
 namespace vul
 {
 	FPSCamera::FPSCamera(Engine& engine, bool fly) : Camera(engine),
-		m_speed(5.f), m_hAngle(3.14159f / 2.f), m_vAngle(-3.14159f / 2.f),
+		m_speed(5.f), m_hAngle(-3.14159f / 2.f), m_vAngle(-3.14159f / 2.f),
 		m_sensitivity(.003f), m_fly(fly), m_ih(engine.getInputHandler())
 	{
 		engine.getWindow()->hideCursor();

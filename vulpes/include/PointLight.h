@@ -13,14 +13,17 @@ namespace vul
 		PointLight(const PointLight&);
 
 		void setColor(const glm::vec3&);
-		void setIntensity(float);
+		void setBrightness(float);
+		void setRadius(float);
 
 		const glm::vec3& getColor();
-		float getIntensity();
+		float getBrightness();
+		float getRadius();
 
 	private:
 		glm::vec3 m_color;
-		float m_intensity;
+		float m_brightness; // In lumens
+		float m_radius; // Distance until falloff is zero
 	};
 }
 

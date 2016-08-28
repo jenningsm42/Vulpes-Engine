@@ -15,5 +15,7 @@
 
 #include "DeferredRenderer.h"
 #include "ForwardRenderer.h"
+#include "CustomRenderer.h"
 #include "Camera.h"
 #include "FPSCamera.h"
+#include "RenderTarget.h"
