@@ -1,0 +1,44 @@
+sudo: required
+language: cpp
+dist: xenial
+branches:
+    only:
+        - master
+before_install:
+    # GLFW
+    - git clone --single-branch --branch latest https://github.com/glfw/glfw.git
+    - cd glfw
+    - cmake .
+    - make
+    - sudo make install
+    - cd ..
+    # GLEW
+    - git clone https://github.com/nigels-com/glew.git
+    - cd glew
+    - make extensions
+    - make
+    - sudo make install
+    # Go back to starting directory
+    - cd ..
+addons:
+    apt:
+        sources:
+            - ubuntu-toolchain-r-test
+        update: true
+        packages:
+            - build-essential
+            - freeglut3-dev
+            - g++-7
+            - libgl-dev
+            - libglm-dev
+            - libglu1-mesa-dev
+            - libxi-dev
+            - libxmu-dev
+            - xorg-dev
+jobs:
+    include:
+        - stage: build
+          name: build
+          script: make CXX=g++-7
+stages:
+    - build

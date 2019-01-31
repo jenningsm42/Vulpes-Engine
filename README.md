@@ -1,5 +1,5 @@
 # Vulpes Engine
-This is a graphics engine that I've been working on in my spare time. I have been using this project to learn more about graphics programming and how to structure large-scale programs. 
+This is a graphics engine that I've been working on in my spare time. I have been using this project to learn more about graphics programming and how to structure large-scale programs.
 
 ## Sample Renders
 ![alt tag](http://i.imgur.com/188sI2J.png)
