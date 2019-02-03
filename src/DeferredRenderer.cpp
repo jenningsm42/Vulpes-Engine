@@ -118,7 +118,7 @@ namespace vul
 		m_gbuffer.bindWrite();
 
 		glDepthMask(GL_TRUE);
-		glClearColor(m_color[0], m_color[1], m_color[2], m_color[3]);
+		glClearColor(1.f, 1.f, 1.f, 1.f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 		glEnable(GL_DEPTH_TEST);
 		if(m_wireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -199,6 +199,9 @@ namespace vul
 	{
 		// The g-buffer has been populated with data, now it must be processed into
 		// the final scene, then rendered on the screen
+
+		glClearColor(m_color[0], m_color[1], m_color[2], m_color[3]);
+		glClear(GL_COLOR_BUFFER_BIT);
 
 		glUseProgram(m_lightShader->programHandle);
 

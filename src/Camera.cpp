@@ -55,7 +55,7 @@ namespace vul
 		m_projMatrix = glm::perspective(m_fieldOfView,
 			(float)m_width / (float)m_height, m_near, m_far);
 		m_viewMatrix = glm::lookAt(m_position, m_target, m_up);
-		m_translateMatrix = glm::translate(glm::mat4(), m_position);
+		m_translateMatrix = glm::translate(glm::mat4(1.f), m_position);
 	}
 
 	glm::mat4 Camera::getViewMatrix()

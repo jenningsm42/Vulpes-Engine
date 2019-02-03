@@ -12,9 +12,10 @@ namespace vul
 	Transformation::Transformation() : m_position(glm::vec3()), m_rotation(glm::vec3()),
 		m_scale(glm::vec3(1.f, 1.f, 1.f))
 	{
-		m_positionMatrix = glm::translate(glm::mat4(), m_position);
+		m_positionMatrix = glm::translate(glm::mat4(1.f), m_position);
 		m_rotationMatrix = glm::eulerAngleYXZ(m_rotation.y, m_rotation.x, m_rotation.z);
-		m_scaleMatrix = glm::scale(glm::mat4(), m_scale);
+		m_normalMatrix = glm::mat3(m_rotationMatrix);
+		m_scaleMatrix = glm::scale(glm::mat4(1.f), m_scale);
 		m_transformationMatrix = m_positionMatrix * m_rotationMatrix * m_scaleMatrix;
 	}
 
@@ -25,6 +26,7 @@ namespace vul
 		m_scale = other.m_scale;
 		m_positionMatrix = other.m_positionMatrix;
 		m_rotationMatrix = other.m_rotationMatrix;
+		m_normalMatrix = other.m_normalMatrix;
 		m_scaleMatrix = other.m_scaleMatrix;
 		m_transformationMatrix = other.m_transformationMatrix;
 	}
@@ -136,7 +138,7 @@ namespace vul
 
 	void Transformation::calculatePositionMatrix()
 	{
-		m_positionMatrix = glm::translate(glm::mat4(), m_position);
+		m_positionMatrix = glm::translate(glm::mat4(1.f), m_position);
 		m_transformationMatrix = m_positionMatrix * m_rotationMatrix * m_scaleMatrix;
 	}
 
@@ -149,7 +151,7 @@ namespace vul
 
 	void Transformation::calculateScaleMatrix()
 	{
-		m_scaleMatrix = glm::scale(glm::mat4(), m_scale);
+		m_scaleMatrix = glm::scale(glm::mat4(1.f), m_scale);
 		m_transformationMatrix = m_positionMatrix * m_rotationMatrix * m_scaleMatrix;
 	}
 }
