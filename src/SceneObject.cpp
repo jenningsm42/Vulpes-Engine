@@ -1,5 +1,6 @@
 #define VULPESENGINE_EXPORT
-#include "include/SceneObject.h"
+
+#include <vulpes/SceneObject.hpp>
 
 namespace vul
 {

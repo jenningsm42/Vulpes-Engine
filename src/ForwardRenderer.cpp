@@ -1,9 +1,12 @@
 #define VULPESENGINE_EXPORT
-#include "include/ForwardRenderer.h"
-#include "include/Scene.h"
-#include "include/Camera.h"
-#include "Logger.h"
+
 #include <GL/glew.h>
+
+#include <vulpes/Camera.hpp>
+#include <vulpes/ForwardRenderer.hpp>
+#include <vulpes/Scene.hpp>
+
+#include "Logger.h"
 
 namespace vul
 {

@@ -1,10 +1,13 @@
 #define VULPESENGINE_EXPORT
-#include "include/DeferredRenderer.h"
-#include "include/Scene.h"
-#include "include/Camera.h"
-#include "include/Mesh.h"
-#include "Logger.h"
+
 #include <GL/glew.h>
+
+#include <vulpes/Camera.hpp>
+#include <vulpes/DeferredRenderer.hpp>
+#include <vulpes/Mesh.hpp>
+#include <vulpes/Scene.hpp>
+
+#include "Logger.h"
 
 namespace vul
 {

@@ -1,8 +1,10 @@
 #define VULPESENGINE_EXPORT
-#include "include/Camera.h"
-#include "include/Engine.h"
-#include "include/Window.h"
+
 #include <glm/gtc/matrix_transform.hpp>
+
+#include <vulpes/Camera.hpp>
+#include <vulpes/Engine.hpp>
+#include <vulpes/Window.hpp>
 
 namespace vul
 {

@@ -1,8 +1,11 @@
 #define VULPESENGINE_EXPORT
-#include "include/RenderTarget.h"
-#include "include/ResourceCache.h"
-#include "Logger.h"
+
 #include <GL/glew.h>
+
+#include <vulpes/RenderTarget.hpp>
+#include <vulpes/ResourceCache.hpp>
+
+#include "Logger.h"
 
 namespace vul
 {
@@ -63,7 +66,7 @@ namespace vul
 		// Create FBO
 		glGenFramebuffers(1, &m_fbo);
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo);
-		
+
 		// Create G-Buffer textures
 		uint32_t textures[m_maxTargets];
 		glGenTextures(m_numTargets, textures);

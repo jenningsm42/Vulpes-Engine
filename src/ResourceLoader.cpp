@@ -1,12 +1,16 @@
 #define VULPESENGINE_EXPORT
-#include "include/ResourceLoader.h"
-#include "include/RenderTarget.h"
-#include "include/CustomRenderer.h"
-#include "Logger.h"
-#include <GL/glew.h>
-#include <glm/glm.hpp>
+
 #include <cstring>
 #include <fstream>
+
+#include <GL/glew.h>
+#include <glm/glm.hpp>
+
+#include <vulpes/ResourceLoader.hpp>
+#include <vulpes/RenderTarget.hpp>
+#include <vulpes/CustomRenderer.hpp>
+
+#include "Logger.h"
 
 namespace vul
 {
@@ -393,7 +397,7 @@ namespace vul
 
 				glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + k, i, info.internalFormat, sideWidth, sideWidth, 0, info.format, info.channelType, sideData);
 			}
-			
+
 			delete[] sideData;
 			delete[] data;
 

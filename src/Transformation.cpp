@@ -1,11 +1,12 @@
 #define VULPESENGINE_EXPORT
-#include "include/Transformation.h"
-#include <glm/gtc/matrix_transform.hpp>
-
 #define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/euler_angles.hpp>
 
 #include <cstdio>
+
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/euler_angles.hpp>
+
+#include <vulpes/Transformation.hpp>
 
 namespace vul
 {

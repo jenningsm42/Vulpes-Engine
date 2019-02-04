@@ -1,10 +1,11 @@
-#include "Logger.h"
+#include <cstdarg>
+#include <ctime>
 #include <fstream>
 #include <iostream>
-#include <ctime>
-#include <cstdarg>
-#include <thread>
 #include <mutex>
+#include <thread>
+
+#include "Logger.h"
 
 static std::mutex mtx;
 void Logger::log(const char* msg, ...)

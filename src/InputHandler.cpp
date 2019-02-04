@@ -1,8 +1,11 @@
 #define VULPESENGINE_EXPORT
-#include "include/InputHandler.h"
+
 #include <cstdint>
+
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+
+#include <vulpes/InputHandler.hpp>
 
 namespace vul
 {

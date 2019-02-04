@@ -1,7 +1,10 @@
 #define VULPESENGINE_EXPORT
-#include "include/VEMParser.h"
-#include "Logger.h"
+
 #include <cstring>
+
+#include <vulpes/VEMParser.hpp>
+
+#include "Logger.h"
 
 namespace vul
 {
@@ -54,7 +57,7 @@ namespace vul
 		bool hasNormals = (flags & 1) != 0;
 		bool hasUVcoords = (flags & 2) != 0;
 		bool hasTB = (flags & 4) != 0;
-		
+
 		uint32_t vcount = *(uint32_t*)&buffer[curpos];
 		curpos += 4;
 		if(vcount == 0)

@@ -1,7 +1,10 @@
 #define VULPESENGINE_EXPORT
-#include "include/GBuffer.h"
-#include "Logger.h"
+
 #include <GL/glew.h>
+
+#include <vulpes/GBuffer.hpp>
+
+#include "Logger.h"
 
 namespace vul
 {

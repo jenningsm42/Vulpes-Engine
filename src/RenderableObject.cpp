@@ -1,5 +1,6 @@
 #define VULPESENGINE_EXPORT
-#include "include/RenderableObject.h"
+
+#include <vulpes/RenderableObject.hpp>
 
 namespace vul
 {

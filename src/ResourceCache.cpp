@@ -1,5 +1,6 @@
 #define VULPESENGINE_EXPORT
-#include "include/ResourceCache.h"
+
+#include <vulpes/ResourceCache.hpp>
 
 namespace vul
 {

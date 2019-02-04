@@ -1,11 +1,15 @@
 #define VULPESENGINE_EXPORT
-#include "include/HDRParser.h"
-#include "Logger.h"
-#include <cstring>
+
 #include <cmath>
-#include <string>
-#include <GL/glew.h>
+#include <cstring>
 #include <iostream>
+#include <string>
+
+#include <GL/glew.h>
+
+#include <vulpes/HDRParser.hpp>
+
+#include "Logger.h"
 
 namespace vul
 {

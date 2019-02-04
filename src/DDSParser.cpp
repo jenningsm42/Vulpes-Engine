@@ -1,9 +1,13 @@
 #define VULPESENGINE_EXPORT
-#include "include/DDSParser.h"
-#include "Logger.h"
-#include <cstring>
+
 #include <cmath>
+#include <cstring>
+
 #include <GL/glew.h>
+
+#include <vulpes/DDSParser.hpp>
+
+#include "Logger.h"
 
 #define FOURCC_DXT1 0x31545844 // DXT1
 #define FOURCC_DXT3 0x33545844 // DXT3
@@ -46,7 +50,7 @@ namespace vul
 			Logger::log("vul::DDSParser::parse: Empty image");
 			return false;
 		}
-		
+
 		if(m_numMipMaps == 0) m_numMipMaps = 1;
 		else if(m_numMipMaps > 32) m_numMipMaps = 32;
 
