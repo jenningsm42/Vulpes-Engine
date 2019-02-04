@@ -1,8 +1,12 @@
 #define VULPESENGINE_EXPORT
-#include "include/ImageParser.h"
-#include "Logger.h"
-#include <GL/glew.h>
+
 #include <cstring>
+
+#include <GL/glew.h>
+
+#include <vulpes/ImageParser.hpp>
+
+#include "Logger.h"
 
 namespace vul
 {

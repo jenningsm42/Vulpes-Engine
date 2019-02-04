@@ -1,8 +1,11 @@
 #define VULPESENGINE_EXPORT
-#include "include/Window.h"
-#include "Logger.h"
+
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+
+#include <vulpes/Window.hpp>
+
+#include "Logger.h"
 
 namespace vul
 {

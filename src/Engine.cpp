@@ -1,10 +1,14 @@
 #define VULPESENGINE_EXPORT
-#include "include/Engine.h"
-#include "include/Window.h"
-#include "include/InputHandler.h"
-#include "Logger.h"
-#include <GL/glew.h>
+
 #include <chrono>
+
+#include <GL/glew.h>
+
+#include <vulpes/Engine.hpp>
+#include <vulpes/Window.hpp>
+#include <vulpes/InputHandler.hpp>
+
+#include "Logger.h"
 
 namespace vul
 {

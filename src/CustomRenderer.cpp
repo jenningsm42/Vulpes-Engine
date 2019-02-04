@@ -1,7 +1,10 @@
 #define VULPESENGINE_EXPORT
-#include "include/CustomRenderer.h"
+
 #include <cstring>
+
 #include <GL/glew.h>
+
+#include <vulpes/CustomRenderer.hpp>
 
 namespace vul
 {

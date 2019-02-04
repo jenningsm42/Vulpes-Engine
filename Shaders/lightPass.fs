@@ -39,7 +39,7 @@ vec3 decodeNormal()
 	vec2 fenc = texture(tNormal, passUVCoords).rg * 4.0 - 2.0;
 	float f = dot(fenc, fenc);
 	float g = sqrt(1.0 - f / 4.0);
-	
+
 	vec3 normal;
 	normal.xy = fenc * g;
 	normal.z = 1.0 - f / 2.0;
@@ -87,7 +87,7 @@ float brdfSpec(float f0, float NdotH, float NdotV, float NdotL, float HdotV, flo
 	float f = fresnelSchlick(f0, HdotV);
 	float d = distributionGGX(NdotH, alpha);
 	float g = geometrySmith(NdotV, NdotL, roughness);
-	
+
 	return f * d * g / (4.0 * NdotL * NdotV);
 }
 
@@ -113,10 +113,10 @@ vec3 calculateLightContribution(PointLight pl, vec3 view, vec3 normal, float Ndo
 	float dist = length(pixelToLight);
 	float falloff = clamp(1.0 - pow(dist / pl.radius, 4.0), 0.0, 1.0);
 	falloff = falloff * falloff / (dist * dist + 1.0);
-	
+
 	//if(falloff <= 0.0) return vec3(0.0); // Continue?
 	vec3 lightValue = pl.color * pl.brightness * falloff;
-	
+
 	// Calculate light and half vectors
 	vec3 light = normalize(pixelToLight);
 	vec3 half = normalize(light + view);
@@ -125,16 +125,16 @@ vec3 calculateLightContribution(PointLight pl, vec3 view, vec3 normal, float Ndo
 	float NdotH = max(dot(normal, half), 0.001);
 	float NdotL = max(dot(normal, light), 0.001);
 	float HdotV = max(dot(half, view), 0.001);
-	
+
 	// Calculate specular lighting
 	float specular = brdfSpec(metallic, NdotH, NdotV, NdotL, HdotV, roughness);
-	
+
 	// Calculate diffuse
 	vec3 diffuse = brdfLambert(color);
-	
+
 	// Calculate fresnel term
 	float fresnel = fresnelSchlick(metallic, NdotV);
-	
+
 	return blendMaterial(diffuse, vec3(specular), color, metallic, fresnel) * NdotL;
 }
 
@@ -156,48 +156,48 @@ vec2 Hammersley(uint i, uint n)
 vec3 importanceSampleGGX(vec2 Xi, float roughness, vec3 normal) // from UE4
 {
 	float alpha = roughness * roughness;
-	
+
 	float phi = 2 * 3.14159 * Xi.x;
 	float cosTheta = sqrt((1.0 - Xi.y) / (1.0 + (alpha * alpha - 1.0) * Xi.y));
 	float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
-	
+
 	vec3 half = vec3(sinTheta * cos(phi), cosTheta, sinTheta * sin(phi));
-	
+
 	vec3 up = abs(normal.y) < 0.999? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
 	vec3 tangentX = normalize(cross(up, normal));
 	vec3 tangentZ = cross(normal, tangentX);
-	
+
 	return tangentX * half.x + normal * half.y + tangentZ * half.z;
 }
 
 vec3 specIBL(vec3 specular, float roughness, vec3 normal, vec3 view) // from UE4
 {
 	vec3 specularLighting = vec3(0.0);
-	
+
 	const uint numSamples = 1024u;
 	for(uint i = 0u; i < numSamples; i++)
 	{
 		vec2 Xi = Hammersley(i, numSamples);
 		vec3 half = importanceSampleGGX(Xi, roughness, normal);
 		vec3 light = 2 * dot(view, half) * half - view;
-		
+
 		float NdotH = max(dot(normal, half), 0.001);
 		float NdotV = max(dot(normal, view), 0.001);
 		float NdotL = max(dot(normal, light), 0.001);
 		float HdotV = max(dot(half, view), 0.001);
-		
+
 		if(NdotL > 0.0)
 		{
 			vec3 sampleColor = textureLod(tEnvironment, light, 0.0).rgb;
-			
+
 			float G = geometrySmith(NdotV, NdotL, roughness);
 			float Fc = pow(1.0 - HdotV, 5.0);
 			vec3 F = (1.0 - Fc) * specular + Fc;
-			
+
 			specularLighting += sampleColor * F * G * HdotV / (NdotH * NdotV);
 		}
 	}
-	
+
 	return specularLighting / numSamples;
 }
 
@@ -210,10 +210,10 @@ vec3 approximateSpecIBL(vec3 specular, float roughness, vec3 normal, vec3 view)
 {
 	float NdotV = max(dot(normal, view), 0.001);
 	vec3 ray = 2.0 * dot(normal, view) * normal - view;
-	
+
 	vec3 prefilteredColor = textureLod(tEnvironment, ray, roughness * environmentMipMaps).rgb;
 	vec2 envBRDF = texture(environmentLUT, vec2(NdotV, roughness)).rg;
-	
+
 	return prefilteredColor * (specular * envBRDF.x + envBRDF.y);
 }
 
@@ -224,20 +224,20 @@ void main()
 	vec3 position = getPixelPosition(depth);
 	vec3 view = normalize(-position); // in view space already
 	vec3 viewWorld = invViewMat * view;
-	
+
 	if(depth > 0.0)
 	{
 		// Unpack rest of G-buffer
 		vec3 color = texture(tColor, passUVCoords).rgb; // No support for alpha channel yet
 		vec3 normal = decodeNormal();
 		vec3 normalWorld = invViewMat * normal;
-		
+
 		vec2 misc = texture(tMisc, passUVCoords).xy;
 		float metallic = clamp(misc.x, 0.0334, 0.99);
 		float roughness = clamp(misc.y, 0.01, 1.0);
-		
+
 		float NdotV = max(dot(normal, view), 0.001);
-		
+
 		// Calculate dynamic lighting
 		vec3 totalLightContribution = vec3(0.0);
 		for(int i = 0; i < LIGHT_COUNT; i++)
@@ -247,14 +247,14 @@ void main()
 		vec3 spec = approximateSpecIBL(mix(vec3(1.0), color, metallic), roughness, normalWorld, viewWorld);
 		vec3 diff = textureLod(tDiffuseEnvironment, normalWorld, 0.0).rgb * color;
 		totalLightContribution += blendMaterial(diff, spec, color, metallic, fresnel);
-		
+
 		// Tone mapping
 		vec3 toneMappedColor = totalLightContribution / (totalLightContribution + vec3(1.0));
-			
+
 		// Gamma correction
 		vec3 gamma = vec3(1.0 / 2.2);
 		vec3 finalColor = pow(toneMappedColor, gamma);
-		
+
 		outColor = vec4(finalColor, 1.0);
 	}
 	else outColor = vec4(textureLod(tEnvironment, viewWorld, 0.0).rgb, 1.0);

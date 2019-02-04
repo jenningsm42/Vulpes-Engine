@@ -1,8 +1,8 @@
 #define VULPESENGINE_EXPORT
-#include "include/FPSCamera.h"
-#include "include/Engine.h"
-#include "include/Window.h"
-#include <iostream>
+
+#include <vulpes/Engine.hpp>
+#include <vulpes/FPSCamera.hpp>
+#include <vulpes/Window.hpp>
 
 namespace vul
 {

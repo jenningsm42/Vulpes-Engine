@@ -1,5 +1,6 @@
 #define VULPESENGINE_EXPORT
-#include "include/PointLight.h"
+
+#include <vulpes/PointLight.hpp>
 
 namespace vul
 {

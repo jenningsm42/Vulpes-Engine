@@ -1,6 +1,8 @@
 #define VULPESENGINE_EXPORT
-#include "include/Scene.h"
+
 #include <algorithm>
+
+#include <vulpes/Scene.hpp>
 
 namespace vul
 {
@@ -28,7 +30,7 @@ namespace vul
 		} break;
 		default: return 0;
 		}
-		
+
 		return m_nextID++;
 	}
 
@@ -82,7 +84,7 @@ namespace vul
 			m_pointLights.pop_back();
 		} break;
 		}
-		
+
 		m_sceneIDs[modifiedID] = index;
 		m_sceneIDs.erase(m_sceneIDs.find(id));
 	}
