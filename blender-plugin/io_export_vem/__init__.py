@@ -63,6 +63,12 @@ class ExportVEM(bpy.types.Operator, ExportHelper):
         default=True,
     )
 
+    use_armature: BoolProperty(
+        name='Write armature weights',
+        description='Export vertex weights for the parent armature',
+        default=False,
+    )
+
     global_scale: FloatProperty(
         name='Scale',
         min=0.01,
@@ -84,7 +90,23 @@ class ExportVEM(bpy.types.Operator, ExportHelper):
                                          to_up=self.axis_up).to_4x4())
 
         keywords['global_matrix'] = global_matrix
-        return export_vem.save(context, **keywords)
+
+        try:
+            return export_vem.save(context, **keywords)
+        except export_vem.NoSelectedObjectException:
+            self.report({'ERROR'}, 'No object is currently selected')
+        except export_vem.ObjectNotMeshException:
+            self.report({'ERROR'}, 'Selected object is not a mesh')
+        except export_vem.NoUVLayersException:
+            self.report({'ERROR'}, 'Selected object has no UV layers')
+        except export_vem.NoArmatureException:
+            self.report({'ERROR'}, 'No parent armature found')
+        except export_vem.TooManyBonesException:
+            self.report(
+                {'ERROR'},
+                'Too many bones, VEM files support up to 255 bones currently')
+
+        return {'FINISHED'}
 
 
 def menu_func_export(self, context):
