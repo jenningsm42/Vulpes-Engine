@@ -1,5 +1,12 @@
 *.sdf
 *.suo
+*.vcxproj*
+*.sln
+
+.vs/
+Debug/
+Release/
+x64/
 
 obj/
 build/
