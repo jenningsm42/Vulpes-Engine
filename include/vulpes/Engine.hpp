@@ -7,35 +7,33 @@
 #include "Window.hpp"
 #include "WindowCreationParameters.hpp"
 
-namespace vul
-{
-	class VEAPI Engine
-	{
-	public:
-		Engine(const WindowCreationParameters&);
-		~Engine();
+namespace vul {
+    class VEAPI Engine {
+    public:
+        Engine(const WindowCreationParameters&);
+        ~Engine();
 
-		bool isRunning();
-		void close();
+        bool isRunning();
+        void close();
 
-		float getDeltaTime();
-		double getDeltaTime64();
-		uint32_t getFPS();
+        float getDeltaTime();
+        double getDeltaTime64();
+        uint32_t getFPS();
 
-		void swapFrameBuffers();
+        void swapFrameBuffers();
 
-		Handle<Window> getWindow();
-		Handle<InputHandler> getInputHandler();
+        Handle<Window> getWindow();
+        Handle<InputHandler> getInputHandler();
 
-	private:
-		Window m_window;
-		InputHandler m_inputHandler;
-		double m_deltaTime64;
-		float m_deltaTime;
-		uint32_t m_fps;
+    private:
+        Window m_window;
+        InputHandler m_inputHandler;
+        double m_deltaTime64;
+        float m_deltaTime;
+        uint32_t m_fps;
 
-		bool initializeOpenGL();
-	};
+        bool initializeOpenGL();
+    };
 }
 
 #endif // _VUL_ENGINE_HPP

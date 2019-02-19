@@ -84,9 +84,26 @@ def write_file(filepath,
 
         uv_coords = mesh.uv_layers.active.data[:]
 
+    armature = object.find_armature()
+    if export_armature_weights:
+        if armature is None:
+            raise NoArmatureException()
+
+        if len(armature.pose.bones) > MAXIMUM_BONES:
+            raise TooManyBonesException()
+
+    original_pose_position = ''
+    if armature is not None:
+        original_pose_position = armature.data.pose_position
+        armature.data.pose_position = 'REST'
+
     # Header info
     magic = b'VULP'
+
     version = 5
+    if export_armature_weights:
+        version = 6
+
     flags = 0
     if export_normals:
         flags |= 2**0
@@ -104,6 +121,9 @@ def write_file(filepath,
         f.write(struct.pack('B', flags))
         f.write(struct.pack('I', vertex_count))
         f.write(struct.pack('I', vertex_count))
+
+        if export_armature_weights:
+            f.write(struct.pack('B', len(armature.pose.bones)))
 
         # Write vertices
         vertices = [None] * vertex_count * 3
@@ -191,13 +211,6 @@ def write_file(filepath,
 
         # Write vertex weights for parent armature
         if export_armature_weights:
-            armature = object.find_armature()
-            if armature is None:
-                raise NoArmatureException()
-
-            if len(armature.pose.bones) > MAXIMUM_BONES:
-                raise TooManyBonesException()
-
             # Map bone names to indices
             bone_name_to_index = {}
             for index, bone in enumerate(armature.pose.bones):
@@ -248,7 +261,7 @@ def write_file(filepath,
                         index += 1
 
             bone_indices_buffer = struct.pack(
-                '{}I'.format(len(bone_indices)),
+                '{}B'.format(len(bone_indices)),
                 *bone_indices)
             vertex_weights_buffer = struct.pack(
                 '{}f'.format(len(vertex_weights)),
@@ -256,6 +269,9 @@ def write_file(filepath,
 
             f.write(bone_indices_buffer)
             f.write(vertex_weights_buffer)
+
+    if armature is not None:
+        armature.data.pose_position = original_pose_position
 
     print('Saved VEM file')
     return {'FINISHED'}

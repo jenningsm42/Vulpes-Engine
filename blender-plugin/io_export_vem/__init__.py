@@ -11,7 +11,7 @@ from bpy_extras.io_utils import (
 )
 from mathutils import Matrix
 
-from . import export_vem
+from . import export_vem, export_ves
 
 
 bl_info = {
@@ -78,6 +78,11 @@ class ExportVEM(bpy.types.Operator, ExportHelper):
 
     check_extension = True
 
+    @classmethod
+    def poll(cls, context):
+        object = context.object
+        return object and object.type == 'MESH'
+
     def execute(self, context):
         keywords = self.as_keywords(ignore=('axis_forward',
                                             'axis_up',
@@ -109,18 +114,81 @@ class ExportVEM(bpy.types.Operator, ExportHelper):
         return {'FINISHED'}
 
 
-def menu_func_export(self, context):
+@orientation_helper(axis_forward='-Z', axis_up='Y')
+class ExportVES(bpy.types.Operator, ExportHelper):
+    '''Save a VES file'''
+
+    bl_idname = 'export.ves'
+    bl_label = 'Export VES'
+    bl_options = {'PRESET'}
+
+    filename_ext = '.ves'
+    filter_glob: StringProperty(
+        default='*.ves',
+        options={'HIDDEN'},
+    )
+
+    check_extension = True
+
+    @classmethod
+    def poll(cls, context):
+        object = context.object
+        return object and object.type == 'ARMATURE'
+
+    def execute(self, context):
+        keywords = self.as_keywords(ignore=('axis_forward',
+                                            'axis_up',
+                                            'global_scale',
+                                            'check_existing',
+                                            'filter_glob'))
+
+        global_matrix = axis_conversion(to_forward=self.axis_forward,
+                                        to_up=self.axis_up).to_4x4()
+
+        keywords['global_matrix'] = global_matrix
+
+        try:
+            return export_ves.save(context, **keywords)
+        except export_ves.NoSelectedObjectException:
+            self.report({'ERROR'}, 'No object is currently selected')
+        except export_ves.ObjectNotArmatureException:
+            self.report({'ERROR'}, 'Selected object is not a mesh')
+        except export_ves.TooManyBonesException:
+            self.report(
+                {'ERROR'},
+                'Too many bones, VES files support up to 255 bones currently')
+
+        return {'FINISHED'}
+
+
+classes = (
+    ExportVEM,
+    ExportVES,
+)
+
+
+def menu_func_export_vem(self, context):
     self.layout.operator(ExportVEM.bl_idname, text='Vulpes Engine Mesh (.vem)')
 
 
+def menu_func_export_ves(self, context):
+    self.layout.operator(ExportVES.bl_idname, text='Vulpes Engine Skeleton (.ves)')
+
+
 def register():
-    bpy.utils.register_class(ExportVEM)
-    bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
+    for cls in classes:
+        bpy.utils.register_class(cls)
+
+    bpy.types.TOPBAR_MT_file_export.append(menu_func_export_vem)
+    bpy.types.TOPBAR_MT_file_export.append(menu_func_export_ves)
 
 
 def unregister():
-    bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
-    bpy.utils.unregister_class(ExportVEM)
+    for cls in classes:
+        bpy.utils.unregister_class(cls)
+
+    bpy.types.TOPBAR_MT_file_export.remove(menu_func_export_vem)
+    bpy.types.TOPBAR_MT_file_export.remove(menu_func_export_ves)
 
 
 if __name__ == '__main__':
