@@ -100,7 +100,7 @@ namespace vul {
 
     void Skeleton::setAction(const std::string& name) {
         if (m_actions.find(name) == m_actions.end()) {
-            Logger::log("vul::Skeleton::setAction: Action '%s' not found", name);
+            Logger::log("vul::Skeleton::setAction: Action '%s' not found", name.c_str());
             return;
         }
 

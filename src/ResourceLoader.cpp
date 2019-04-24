@@ -140,14 +140,14 @@ namespace vul {
         // Read file
         std::vector<uint8_t> fileData = readFile(path);
         if (fileData.size() == 0) {
-            Logger::log("vul::ResourceLoader::loadTextureFromFile: Returned empty '%s'", path);
+            Logger::log("vul::ResourceLoader::loadTextureFromFile: Returned empty '%s'", path.c_str());
             return Handle<Texture>();
         }
 
         // Parse data
         const uint8_t* buffer = reinterpret_cast<const uint8_t*>(fileData.data());
         if (!m_imageParser.parse(buffer, fileData.size())) {
-            Logger::log("vul::ResourceLoader::loadTextureFromFile: Unable to load '%s'", path);
+            Logger::log("vul::ResourceLoader::loadTextureFromFile: Unable to load '%s'", path.c_str());
             return Handle<Texture>();
         }
 
