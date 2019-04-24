@@ -42,6 +42,11 @@ namespace vul {
         m_metalMap = tex.makeCopy();
     }
 
+    void RenderableObject::attachSkeleton(const Handle<Skeleton>& skeleton) {
+        m_flags |= static_cast<uint8_t>(RenderableObjectFlags::SkeletonAttached);
+        m_skeleton = skeleton;
+    }
+
     void RenderableObject::setVisible(bool visible) {
         visible ? m_flags |= static_cast<uint8_t>(RenderableObjectFlags::Visible)
             : m_flags &= ~static_cast<uint8_t>(RenderableObjectFlags::Visible);
@@ -71,6 +76,10 @@ namespace vul {
         return m_metalMap;
     }
 
+    Handle<Skeleton> RenderableObject::getSkeleton() {
+        return m_skeleton;
+    }
+    
     bool RenderableObject::isVisible() {
         return m_flags & static_cast<uint8_t>(RenderableObjectFlags::Visible);
     }

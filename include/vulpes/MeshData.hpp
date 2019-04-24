@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "Skeleton.hpp"
+
 namespace vul {
     struct MeshData {
         void resize(
@@ -55,7 +57,7 @@ namespace vul {
         std::vector<float> UVCoordinates;
         std::vector<float> vertexWeights;
         std::vector<uint8_t> vertexBones;
-        std::unordered_map<std::string, uint8_t> boneNameToIndex;
+        BoneNameToIndexMap boneNameToIndex;
     };
 }
 

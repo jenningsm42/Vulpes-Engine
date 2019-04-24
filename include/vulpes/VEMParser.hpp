@@ -2,7 +2,6 @@
 #define _VUL_VEMPARSER_HPP
 
 #include "Export.hpp"
-#include "Handle.hpp"
 #include "Mesh.hpp"
 #include "MeshData.hpp"
 

@@ -11,8 +11,10 @@
 #include "MeshData.hpp"
 #include "ResourceCache.hpp"
 #include "Shader.hpp"
+#include "Skeleton.hpp"
 #include "Texture.hpp"
 #include "VEMParser.hpp"
+#include "VESParser.hpp"
 
 namespace vul {
     class VEAPI ResourceLoader {
@@ -38,15 +40,20 @@ namespace vul {
         Handle<Shader> loadShaderFromFile(const std::string& vsPath, const std::string& fsPath);
         Handle<Shader> loadShaderFromText(const uint8_t* vsContent, const uint8_t* fsContent);
 
+        Handle<Skeleton> loadSkeletonFromFile(const std::string& path);
+
         Handle<Mesh> getPlane();
         Handle<Mesh> getSphere();
         Handle<Mesh> getQuad();
+
+        Handle<Mesh> generateSkeletonMesh(Handle<Skeleton>);
 
         Handle<ResourceCache> getResourceCache();
 
     private:
         ResourceCache m_resourceCache;
         VEMParser m_parserVEM;
+        VESParser m_parserVES;
         ImageParser m_imageParser;
 
         bool validateShader(uint32_t shaderHandle);

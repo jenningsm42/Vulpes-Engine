@@ -24,7 +24,6 @@ namespace vul {
     }
 
     Handle<Mesh> ResourceLoader::loadMeshFromFile(const std::string& path) {
-
         if (m_resourceCache.hasResource(path))
             return m_resourceCache.getMesh(path);
 
@@ -120,6 +119,8 @@ namespace vul {
             glBufferData(GL_ARRAY_BUFFER, meshData.vertexBones.size() * sizeof(uint8_t), meshData.vertexBones.data(), GL_STATIC_DRAW);
             glVertexAttribIPointer(6, 4, GL_UNSIGNED_BYTE, 0, 0);
             glEnableVertexAttribArray(6);
+
+            mesh->boneNameToIndex = meshData.boneNameToIndex;
         }
 
         glBindVertexArray(0);
@@ -447,6 +448,29 @@ namespace vul {
         return shader;
     }
 
+    Handle<Skeleton> ResourceLoader::loadSkeletonFromFile(const std::string& path) {
+        if (m_resourceCache.hasResource(path))
+            return m_resourceCache.getSkeleton(path);
+
+        std::vector<uint8_t> fileData = readFile(path);
+        if (fileData.size() == 0) {
+            Logger::log("vul::ResourceLoader::loadSkeletonFromFile: Returned empty '%s'", path.c_str());
+            return Handle<Skeleton>();
+        }
+
+        Handle<Skeleton> skeleton;
+        if (!m_parserVES.parse(skeleton, fileData.data(), fileData.size())) {
+            Logger::log("vul::ResourceLoader::loadSkeletonFromFile: Unable to load '%s'", path.c_str());
+            return Handle<Skeleton>();
+        }
+
+        skeleton.setLoaded();
+
+        m_resourceCache.addSkeleton(path, skeleton);
+
+        return skeleton;
+    }
+
     Handle<Mesh> ResourceLoader::getPlane() {
         return m_resourceCache.getMesh("__vul_plane");
     }
@@ -670,6 +694,63 @@ namespace vul {
         Handle<Mesh> quad = loadMeshFromData(meshData);
         if (quad.isLoaded())
             m_resourceCache.addMesh("__vul_quad", quad);
+    }
+
+    Handle<Mesh> ResourceLoader::generateSkeletonMesh(Handle<Skeleton> skeleton) {
+        auto frameState = skeleton->getCurrentFrameState();
+        auto boneDetailMap = skeleton->getBoneDetailMap();
+
+        MeshData meshData;
+        meshData.resize(4 * frameState.size(), 12 * frameState.size());
+
+        const float radius = 0.01f;
+        const float pi23 = 2.f * 3.14159f / 3.f;
+
+        for (size_t i = 0; i < frameState.size(); i++) {
+            auto bone = frameState[i];
+            auto boneDetails = boneDetailMap[i];
+
+            auto head = bone.first;
+            auto tail = glm::mat4_cast(bone.second) * glm::vec4(std::get<2>(boneDetails) - std::get<1>(boneDetails), 1.f) + glm::vec4(head, 1.f);
+
+            // Base
+            meshData.vertices[12 * i] = head.x + radius;
+            meshData.vertices[12 * i + 1] = head.y;
+            meshData.vertices[12 * i + 2] = head.z;
+
+            meshData.vertices[12 * i + 3] = head.x + radius * cosf(pi23);
+            meshData.vertices[12 * i + 4] = head.y;
+            meshData.vertices[12 * i + 5] = head.z + radius * sinf(pi23);
+
+            meshData.vertices[12 * i + 6] = head.x + radius * cosf(2.f * pi23);
+            meshData.vertices[12 * i + 7] = head.y;
+            meshData.vertices[12 * i + 8] = head.z + radius * sinf(2.f * pi23);
+
+            // Apex
+            meshData.vertices[12 * i + 9] = tail.x;
+            meshData.vertices[12 * i + 10] = tail.y;
+            meshData.vertices[12 * i + 11] = tail.z;
+
+            // Base
+            meshData.indices[12 * i] = 4 * i;
+            meshData.indices[12 * i + 1] = 4 * i + 1;
+            meshData.indices[12 * i + 2] = 4 * i + 2;
+
+            // Sides
+            meshData.indices[12 * i + 3] = 4 * i;
+            meshData.indices[12 * i + 4] = 4 * i + 3;
+            meshData.indices[12 * i + 5] = 4 * i + 1;
+
+            meshData.indices[12 * i + 6] = 4 * i + 1;
+            meshData.indices[12 * i + 7] = 4 * i + 3;
+            meshData.indices[12 * i + 8] = 4 * i + 2;
+
+            meshData.indices[12 * i + 9] = 4 * i + 2;
+            meshData.indices[12 * i + 10] = 4 * i + 3;
+            meshData.indices[12 * i + 11] = 4 * i;
+        }
+
+        return loadMeshFromData(meshData);
     }
 
     void ResourceLoader::createIBLLUT() {

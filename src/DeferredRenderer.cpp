@@ -166,6 +166,30 @@ namespace vul {
             // Extra
             glUniform1f(static_cast<GLint>(DeferredGeometryUniformLocations::Near), m_camera->getNear());
 
+            // Skeleton
+            auto skeleton = currentObject->getSkeleton();
+            if (skeleton.isLoaded()) {
+                auto frameState = skeleton->getCurrentFrameState(mesh->boneNameToIndex);
+                auto boneDetails = skeleton->getBoneDetailMap(mesh->boneNameToIndex);
+                const auto boneStateLocation = static_cast<GLint>(DeferredGeometryUniformLocations::BoneStateArray);
+                for (size_t i = 0; i < frameState.size(); i++) {
+                    glUniform3fv(boneStateLocation + i * 3, 1, &std::get<1>(boneDetails[i])[0]);
+                    glUniform3fv(boneStateLocation + i * 3 + 1, 1, &frameState[i].first[0]);
+                    glUniform4fv(boneStateLocation + i * 3 + 2, 1, &frameState[i].second[0]);
+                }
+            }
+            else {
+                // Until shader-switching implemented, use zero-value quaternions and locations
+                glm::vec3 zeroLocation;
+                glm::quat zeroQuaternion;
+                const auto boneStateLocation = static_cast<GLint>(DeferredGeometryUniformLocations::BoneStateArray);
+                for (size_t i = 0; i < 255; i++) {
+                    glUniform3fv(boneStateLocation + i * 3, 1, &zeroLocation[0]);
+                    glUniform3fv(boneStateLocation + i * 3 + 1, 1, &zeroLocation[0]);
+                    glUniform4fv(boneStateLocation + i * 3 + 2, 1, &zeroQuaternion[0]);
+                }
+            }
+
             // Meshes
             glBindVertexArray(mesh->vao);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ib);

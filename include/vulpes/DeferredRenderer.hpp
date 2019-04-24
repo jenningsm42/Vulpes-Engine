@@ -17,10 +17,11 @@ namespace vul {
         ModelMatrix = 8,
         NormalMatrix = 12,
         Near = 15,
-        ColorMap = 16,
-        NormalMap = 17,
-        RoughnessMap = 18,
-        MetalMap = 19
+        BoneStateArray = 16,
+        ColorMap = 781,
+        NormalMap = 782,
+        RoughnessMap = 783,
+        MetalMap = 784
     };
 
     enum struct DeferredLightUniformLocations {

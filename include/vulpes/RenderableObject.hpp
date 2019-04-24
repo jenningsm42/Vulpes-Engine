@@ -5,6 +5,7 @@
 #include "Handle.hpp"
 #include "Mesh.hpp"
 #include "SceneObject.hpp"
+#include "Skeleton.hpp"
 #include "Texture.hpp"
 
 namespace vul {
@@ -14,7 +15,8 @@ namespace vul {
         ColorMapAttached = 4,
         NormalMapAttached = 8,
         RoughnessMapAttached = 16,
-        MetalMapAttached = 32
+        MetalMapAttached = 32,
+        SkeletonAttached = 64
     };
 
     class VEAPI RenderableObject : public SceneObject {
@@ -27,6 +29,7 @@ namespace vul {
         void attachNormalMap(const Handle<Texture>&);
         void attachRoughnessMap(const Handle<Texture>&);
         void attachMetalMap(const Handle<Texture>&);
+        void attachSkeleton(const Handle<Skeleton>&);
         void setVisible(bool visible);
 
         Handle<Mesh> getMesh();
@@ -34,6 +37,7 @@ namespace vul {
         Handle<Texture> getNormalMap();
         Handle<Texture> getRoughnessMap();
         Handle<Texture> getMetalMap();
+        Handle<Skeleton> getSkeleton();
         bool isVisible();
 
     private:
@@ -42,6 +46,7 @@ namespace vul {
         Texture m_normalMap;
         Texture m_roughnessMap;
         Texture m_metalMap;
+        Handle<Skeleton> m_skeleton;
         uint8_t m_flags; // Ensure space isn't wasted with many bools
     };
 }

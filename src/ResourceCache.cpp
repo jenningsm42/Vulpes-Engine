@@ -13,7 +13,8 @@ namespace vul {
         bool hasMesh = (m_meshes.find(path) != m_meshes.end());
         bool hasTexture = (m_textures.find(path) != m_textures.end());
         bool hasShader = (m_shaders.find(path) != m_shaders.end());
-        return hasMesh || hasTexture || hasShader;
+        bool hasSkeleton = (m_skeletons.find(path) != m_skeletons.end());
+        return hasMesh || hasTexture || hasShader || hasSkeleton;
     }
 
     Handle<Mesh> ResourceCache::getMesh(const std::string& path) {
@@ -28,6 +29,10 @@ namespace vul {
         return m_shaders[path];
     }
 
+    Handle<Skeleton> ResourceCache::getSkeleton(const std::string& path) {
+        return m_skeletons[path];
+    }
+
     void ResourceCache::addMesh(const std::string& path, Handle<Mesh> mesh) {
         m_meshes[path] = mesh;
     }
@@ -38,5 +43,9 @@ namespace vul {
 
     void ResourceCache::addShader(const std::string& path, Handle<Shader> shader) {
         m_shaders[path] = shader;
+    }
+
+    void ResourceCache::addSkeleton(const std::string& path, Handle<Skeleton> skeleton) {
+        m_skeletons[path] = skeleton;
     }
 }
