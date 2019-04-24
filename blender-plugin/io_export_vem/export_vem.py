@@ -1,8 +1,33 @@
+import operator
 import struct
 
 import bmesh
 import bpy
 from mathutils import Matrix
+
+
+class NoSelectedObjectException(Exception):
+    pass
+
+
+class ObjectNotMeshException(Exception):
+    pass
+
+
+class NoUVLayersException(Exception):
+    pass
+
+
+class NoArmatureException(Exception):
+    pass
+
+
+class TooManyBonesException(Exception):
+    pass
+
+
+BONES_PER_VERTEX = 4
+MAXIMUM_BONES = 255
 
 
 def triangulate_mesh(mesh):
@@ -20,9 +45,14 @@ def write_file(filepath,
                export_normals,
                export_uvcoords,
                export_tb,
+               export_armature_weights,
                global_matrix):
     # Obtain triangulated mesh
-    mesh = object.to_mesh(depsgraph, apply_modifiers)
+    try:
+        mesh = object.to_mesh(depsgraph, apply_modifiers)
+    except RuntimeError:
+        raise ObjectNotMeshException()
+
     triangulate_mesh(mesh)
 
     # Apply object space transformation
@@ -48,19 +78,41 @@ def write_file(filepath,
             mesh.calc_tangents()
 
     uv_coords = None
-    if export_uvcoords and len(mesh.uv_layers) > 0:
+    if export_uvcoords:
+        if not mesh.uv_layers:
+            raise NoUVLayersException()
+
         uv_coords = mesh.uv_layers.active.data[:]
+
+    armature = object.find_armature()
+    if export_armature_weights:
+        if armature is None:
+            raise NoArmatureException()
+
+        if len(armature.pose.bones) > MAXIMUM_BONES:
+            raise TooManyBonesException()
+
+    original_pose_position = ''
+    if armature is not None:
+        original_pose_position = armature.data.pose_position
+        armature.data.pose_position = 'REST'
 
     # Header info
     magic = b'VULP'
+
     version = 5
+    if export_armature_weights:
+        version = 6
+
     flags = 0
     if export_normals:
-        flags |= 1
+        flags |= 2**0
     if export_uvcoords:
-        flags |= 2
+        flags |= 2**1
     if export_tb:
-        flags |= 4
+        flags |= 2**2
+    if export_armature_weights:
+        flags |= 2**3
 
     # Write data
     with open(filepath, 'wb+') as f:
@@ -69,6 +121,9 @@ def write_file(filepath,
         f.write(struct.pack('B', flags))
         f.write(struct.pack('I', vertex_count))
         f.write(struct.pack('I', vertex_count))
+
+        if export_armature_weights:
+            f.write(struct.pack('B', len(armature.pose.bones)))
 
         # Write vertices
         vertices = [None] * vertex_count * 3
@@ -154,6 +209,70 @@ def write_file(filepath,
 
             f.write(uvs_buffer)
 
+        # Write vertex weights for parent armature
+        if export_armature_weights:
+            # Map bone names to indices
+            bone_name_to_index = {}
+            for index, bone in enumerate(armature.pose.bones):
+                bone_name_to_index[bone.name] = index
+
+                # {bone index} - {bone name length} - {bone name}
+                f.write(struct.pack('B', index))
+                f.write(struct.pack('B', min(len(bone.name), 255)))
+                f.write(bone.name[:255].encode('utf8'))
+
+            # Map vertex group index to bone index
+            group_to_bone_index = {}
+            for index, group in enumerate(object.vertex_groups):
+                # There may be non-armature related vertex groups
+                bone_index = bone_name_to_index.get(group.name)
+                if bone_index:
+                    group_to_bone_index[index] = bone_index
+
+            # Write per-vertex bone indices and weights
+            bone_indices = [None] * vertex_count * BONES_PER_VERTEX
+            vertex_weights = [None] * vertex_count * BONES_PER_VERTEX
+
+            index = 0
+            for face in faces:
+                for loop_index in face.loop_indices:
+                    vertex_index = loops[loop_index].vertex_index
+                    groups = mesh.vertices[vertex_index].groups[:]
+
+                    # Ensure that vertex groups are armature-related only
+                    groups = [group for group in groups
+                              if group.group in group_to_bone_index]
+
+                    # Take the largest weighted vertex groups
+                    if len(groups) > BONES_PER_VERTEX:
+                        groups.sort(key=operator.attrgetter('weight'),
+                                    reverse=True)
+                        groups = groups[:BONES_PER_VERTEX]
+
+                    for group in groups:
+                        bone_indices[index] = group_to_bone_index[group.group]
+                        vertex_weights[index] = group.weight
+                        index += 1
+
+                    # Need to have equal number of bones per vertex
+                    for _ in range(BONES_PER_VERTEX - len(groups)):
+                        bone_indices[index] = 0
+                        vertex_weights[index] = 0
+                        index += 1
+
+            bone_indices_buffer = struct.pack(
+                '{}B'.format(len(bone_indices)),
+                *bone_indices)
+            vertex_weights_buffer = struct.pack(
+                '{}f'.format(len(vertex_weights)),
+                *vertex_weights)
+
+            f.write(bone_indices_buffer)
+            f.write(vertex_weights_buffer)
+
+    if armature is not None:
+        armature.data.pose_position = original_pose_position
+
     print('Saved VEM file')
     return {'FINISHED'}
 
@@ -165,7 +284,11 @@ def save(context,
          use_normals,
          use_uvcoords,
          use_tb,
+         use_armature,
          global_matrix):
+    if not context.selected_objects:
+        raise NoSelectedObjectException()
+
     object = context.selected_objects[0]
     depsgraph = context.depsgraph
 
@@ -177,4 +300,5 @@ def save(context,
         use_normals,
         use_uvcoords,
         use_tb,
+        use_armature,
         global_matrix)

@@ -6,21 +6,19 @@
 #include "Renderer.hpp"
 #include "Shader.hpp"
 
-namespace vul
-{
-	class VEAPI ForwardRenderer : public Renderer
-	{
-	public:
-		ForwardRenderer();
-		~ForwardRenderer();
+namespace vul {
+    class VEAPI ForwardRenderer : public Renderer {
+    public:
+        ForwardRenderer();
+        ~ForwardRenderer();
 
-		void render() override;
+        void render() override;
 
-		void setWireframeMode(bool) override;
+        void setWireframeMode(bool) override;
 
-	private:
-		Handle<Shader> m_shader;
-	};
+    private:
+        Handle<Shader> m_shader;
+    };
 }
 
 #endif // _VUL_FORWARDRENDERER_HPP

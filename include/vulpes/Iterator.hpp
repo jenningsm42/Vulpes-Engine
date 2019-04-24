@@ -3,16 +3,15 @@
 #include <vector>
 
 template <class T>
-class Iterator
-{
+class Iterator {
 public:
-	Iterator();
-	~Iterator();
+    Iterator();
+    ~Iterator();
 
-	T next();
+    T next();
 
 private:
-	std::vector<T*> ptrs;
+    std::vector<T*> ptrs;
 };
 
 #endif // _VUL_ITERATOR_HPP

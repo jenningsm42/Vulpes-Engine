@@ -2,69 +2,63 @@
 #define _VUL_MESHDATA_HPP
 
 #include <cstdint>
+#include <unordered_map>
+#include <vector>
 
-namespace vul
-{
-	struct MeshData
-	{
-		MeshData() {}
-		MeshData(uint32_t vertexCount, uint32_t indexCount,
-			bool hasNormals = false, bool hasTB = false,
-			bool hasUVCoordinates = false) : vertexCount(vertexCount),
-			indexCount(indexCount)
-		{
-			vertices = new float[vertexCount * 3];
-			indices = new uint32_t[indexCount];
-			normals = hasNormals ? new float[vertexCount * 3] : nullptr;
-			tangents = hasTB ? new float[vertexCount * 3] : nullptr;
-			bitangents = hasTB ? new float[vertexCount * 3] : nullptr;
-			UVCoordinates = hasUVCoordinates ? new float[vertexCount * 2] : nullptr;
-		}
+#include "Skeleton.hpp"
 
-		~MeshData()
-		{
-			if(vertices) delete[] vertices;
-			if(indices) delete[] indices;
-			if(normals) delete[] normals;
-			if(UVCoordinates) delete[] UVCoordinates;
-			if(tangents) delete[] tangents;
-			if(bitangents) delete[] bitangents;
-		}
+namespace vul {
+    struct MeshData {
+        void resize(
+            uint32_t vertexCount,
+            uint32_t indexCount,
+            bool hasNormals = false,
+            bool hasTB = false,
+            bool hasUVCoordinates = false,
+            bool hasBones = false
+        ) {
+            vertices.resize(vertexCount * 3);
+            indices.resize(indexCount);
 
-		void initialize(uint32_t vertexCount, uint32_t indexCount,
-			bool hasNormals = false, bool hasTB = false,
-			bool hasUVCoordinates = false)
-		{
-			this->vertexCount = vertexCount;
-			this->indexCount = indexCount;
-			vertices = new float[vertexCount * 3];
-			indices = new uint32_t[indexCount];
-			normals = hasNormals ? new float[vertexCount * 3] : nullptr;
-			tangents = hasTB ? new float[vertexCount * 3] : nullptr;
-			bitangents = hasTB ? new float[vertexCount * 3] : nullptr;
-			UVCoordinates = hasUVCoordinates ? new float[vertexCount * 2] : nullptr;
-		}
+            if (hasNormals) {
+                normals.resize(vertexCount * 3);
+            }
 
-		MeshData& operator=(const MeshData& rhs)
-		{
-			vertices = rhs.vertices;
-			indices = rhs.indices;
-			normals = rhs.normals;
-			tangents = rhs.tangents;
-			bitangents = rhs.bitangents;
-			UVCoordinates = rhs.UVCoordinates;
-			return *this;
-		}
+            if (hasTB) {
+                tangents.resize(vertexCount * 3);
+                bitangents.resize(vertexCount * 3);
+            }
 
-		float* vertices;
-		uint32_t* indices;
-		float* normals;
-		float* tangents;
-		float* bitangents;
-		float* UVCoordinates;
-		uint32_t vertexCount;
-		uint32_t indexCount;
-	};
+            if (hasUVCoordinates) {
+                UVCoordinates.resize(vertexCount * 2);
+            }
+
+            if (hasBones) {
+                vertexWeights.resize(vertexCount * 4);
+                vertexBones.resize(vertexCount * 4);
+            }
+        }
+
+        MeshData& operator=(const MeshData& rhs) {
+            vertices = rhs.vertices;
+            indices = rhs.indices;
+            normals = rhs.normals;
+            tangents = rhs.tangents;
+            bitangents = rhs.bitangents;
+            UVCoordinates = rhs.UVCoordinates;
+            return *this;
+        }
+
+        std::vector<float> vertices;
+        std::vector<uint32_t> indices;
+        std::vector<float> normals;
+        std::vector<float> tangents;
+        std::vector<float> bitangents;
+        std::vector<float> UVCoordinates;
+        std::vector<float> vertexWeights;
+        std::vector<uint8_t> vertexBones;
+        BoneNameToIndexMap boneNameToIndex;
+    };
 }
 
 #endif // _VUL_MESHDATA_HPP
